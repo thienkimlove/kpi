@@ -508,7 +508,8 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
     )
     ancestors = AncestorCollectionsSerializer(
         many=True, read_only=True, source='get_ancestors_or_none')
-    permissions = ObjectPermissionNestedSerializer(many=True, read_only=True)
+    permissions = ObjectPermissionNestedSerializer(
+        many=True, read_only=True, source='get_grant_permissions')
     tag_string = serializers.CharField(required=False, allow_blank=True)
     version_id = serializers.CharField(read_only=True)
     version__content_hash = serializers.CharField(read_only=True)

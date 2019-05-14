@@ -535,6 +535,9 @@ class Asset(ObjectPermissionMixin,
         'view_submissions': {'shared': True, 'shared_data': True}
     }
 
+    def get_grant_permissions(self):
+        return self.permissions.filter(deny=False)
+
     # todo: test and implement this method
     # def restore_version(self, uid):
     #     _version_to_restore = self.asset_versions.get(uid=uid)

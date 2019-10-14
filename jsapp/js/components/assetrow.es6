@@ -25,7 +25,8 @@ class AssetRow extends React.Component {
     this.state = {
       isTagsInputVisible: false,
       clearPopover: false,
-      popoverVisible: false
+      popoverVisible: false,
+      hover: false
     };
     this.escFunction = this.escFunction.bind(this);
     autoBind(this);
@@ -89,6 +90,23 @@ class AssetRow extends React.Component {
   popoverSetVisible () {
     this.setState({popoverVisible: true});
   }
+  onHoverEnter(){
+    console.log('onHoverEnter');
+    if (!this.state.hover) {
+      this.setState({hover: true});
+    }
+  }
+  onHoverLeave(){
+    console.log('onHoverLeave');
+    this.clearPopover();
+    if (this.state.hover) {
+      this.setState({hover: false});
+    }
+  }
+  renderIcon() {
+    return (<i className={`row-icon row-icon--${this.props.asset_type}`}>{_rc}</i>);
+
+  }
   render () {
     var selfowned = this.props.owner__username === this.props.currentUsername;
     var _rc = this.props.summary && this.props.summary.row_count || 0;
@@ -134,7 +152,8 @@ class AssetRow extends React.Component {
           }}
           className='mdl-grid'
           key={this.props.uid}
-          onMouseLeave={this.clearPopover}
+          onMouseEnter={this.onHoverEnter}
+          onMouseLeave={this.onHoverLeave}
         >
           <bem.AssetRow__cell
             m={'asset-details'}
@@ -159,8 +178,11 @@ class AssetRow extends React.Component {
                   this.props.asset_type == ASSET_TYPES.template.id ||
                   this.props.asset_type == ASSET_TYPES.block.id ||
                   this.props.asset_type == ASSET_TYPES.question.id
-                ) &&
-                <i className={`row-icon row-icon--${this.props.asset_type}`}>{_rc}</i>
+                ) && (
+                  !this.state.hover && <i className={`row-icon row-icon--${this.props.asset_type}`}>{_rc}</i> 
+                ) || (
+                  this.state.hover && <div className="alertify-toggle checkbox ${additionalClass}"><label className="checkbox__wrapper"><input type="checkbox" className="checkbox__input"/></label></div>
+                )
               }
               <bem.AssetRow__cell m='name'>
                 <ui.AssetName {...this.props} />

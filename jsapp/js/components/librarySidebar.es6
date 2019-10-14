@@ -80,6 +80,7 @@ class LibrarySidebar extends Reflux.Component {
     if (target.hasClass('collection-toggle')) {
       return false;
     }
+    console.log('target: ' + Object.values(target));
     var data = $(evt.currentTarget).data();
     var collectionUid = false;
     var collectionName = false;

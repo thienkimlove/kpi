@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from copy import deepcopy
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 import re
 import string
 import random

@@ -1,5 +1,5 @@
 import requests
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.core.exceptions import PermissionDenied

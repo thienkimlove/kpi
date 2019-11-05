@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 
 from rest_framework import serializers
 from rest_framework.pagination import LimitOffsetPagination

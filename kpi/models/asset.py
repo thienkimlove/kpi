@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import StringIO
 import copy
 import sys
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 
 import jsonbfield.fields
 import six
@@ -172,14 +172,14 @@ class FormpackXLSFormUtils(object):
     def _ensure_settings(self, content):
         # asset.settings should exist already, but
         # on some legacy forms it might not
-        _settings = content.get('settings', {})
+        _settings = OrderedDict(content.get('settings', {}))
         if isinstance(_settings, list):
             if len(_settings) > 0:
-                _settings = _settings[0]
+                _settings = OrderedDict(_settings[0])
             else:
-                _settings = {}
+                _settings = OrderedDict()
         if not isinstance(_settings, dict):
-            _settings = {}
+            _settings = OrderedDict()
         content['settings'] = _settings
 
     def _append(self, content, **sheet_data):
@@ -407,15 +407,17 @@ class XlsExportable(object):
         parameter.
             `{'settings': {'setting name': 'setting value'}}` """
         if versioned:
-            append = kwargs['append'] = kwargs.get('append', {})
-            append_survey = append['survey'] = append.get('survey', [])
-            append_settings = append['settings'] = append.get('settings', {})
+            append = kwargs.setdefault('append', {})
+            append_survey = append.setdefault('survey', [])
+            # We want to keep the order and append `version` at the end.
+            append_settings = OrderedDict(append.setdefault('settings', {}))
             append_survey.append(
                 {'name': '__version__',
                  'calculation': '\'{}\''.format(self.version_id),
                  'type': 'calculate'}
             )
             append_settings.update({'version': self.version_id})
+            kwargs['append']['settings'] = append_settings
         try:
             def _add_contents_to_sheet(sheet, contents):
                 cols = []

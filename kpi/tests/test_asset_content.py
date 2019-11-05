@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 from kpi.models import Asset
 from kpi.utils.sluggify import sluggify_label
 from pprint import pprint
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 
 # import pytest
 import json

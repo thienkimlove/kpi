@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 import itertools
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 from copy import deepcopy
 
 from django.conf import settings

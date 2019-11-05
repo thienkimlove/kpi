@@ -1,5 +1,5 @@
 import re
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 
 from formpack.utils.replace_aliases import META_TYPES, GEO_TYPES
 

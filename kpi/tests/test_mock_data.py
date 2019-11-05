@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from copy import deepcopy
 import json
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -13,9 +13,61 @@ from formpack import FormPack
 
 from kpi.models import Asset
 
-from formpack.utils import json_hash
-
-F1 = {u'survey': [{u'$kuid': u'Uf89NP4VX', u'type': u'start', u'name': u'start'}, {u'$kuid': u'ZtZBY7XHX', u'type': u'end', u'name': u'end'}, {u'name': u'Select_one', u'select_from_list_name': u'choice_list_1', u'required': u'true', u'label': [u'Select one', u'Seleccione uno', u'\u0627\u062e\u062a\u0631 \u0648\u0627\u062d\u062f\u0627'], u'$kuid': u'WXOeQ4Nc0', u'type': u'select_one'}, {u'name': u'Select_Many', u'select_from_list_name': u'choice_list_2', u'required': u'true', u'label': [u'Select Many', u'Muchos seleccione', u'\u0627\u062e\u062a\u0631 \u0627\u0644\u0639\u062f\u064a\u062f'], u'$kuid': u'BC6BNP91R', u'type': u'select_multiple'}, {u'$kuid': u'0e7sTrQzo', u'required': u'true', u'type': u'text', u'name': u'Text', u'label': [u'Text', u'Texto', u'\u0646\u0635']}, {u'$kuid': u'ZzKb8DeQu', u'required': u'true', u'type': u'integer', u'name': u'Number', u'label': [u'Number', u'N\xfamero', u'\u0639\u062f\u062f']}, {u'$kuid': u'gLEDxsNZo', u'required': u'true', u'type': u'decimal', u'name': u'Decimal', u'label': [u'Decimal', u'Decimal', u'\u0639\u062f\u062f \u0639\u0634\u0631\u064a']}, {u'$kuid': u'pt2w8z3Xk', u'required': u'true', u'type': u'date', u'name': u'Date', u'label': [u'Date', u'Fecha', u'\u062a\u0627\u0631\u064a\u062e']}, {u'$kuid': u'3xn0tP9AI', u'required': u'true', u'type': u'time', u'name': u'Time', u'label': [u'Time', u'Hora', u'\u0645\u0631\u0629']}, {u'$kuid': u'w0nYPBtT0', u'required': u'true', u'type': u'datetime', u'name': u'Date_and_time', u'label': [u'Date and time', u'Fecha y hora', u'\u0627\u0644\u062a\u0627\u0631\u064a\u062e \u0648 \u0627\u0644\u0648\u0642\u062a']}, {u'$kuid': u'0dovjhXG6', u'required': u'false', u'type': u'geopoint', u'name': u'GPS', u'label': [u'GPS', u'GPS', u'\u0646\u0638\u0627\u0645 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0648\u0627\u0642\u0639']}, {u'$kuid': u'NI2fsrYZI', u'required': u'true', u'type': u'image', u'name': u'Photo', u'label': [u'Photo', u'Foto', u'\u0635\u0648\u0631\u0629 \u0641\u0648\u062a\u0648\u063a\u0631\u0627\u0641\u064a\u0629']}, {u'$kuid': u'FlfOVztW3', u'required': u'true', u'type': u'audio', u'name': u'Audio', u'label': [u'Audio', u'Audio', u'\u0633\u0645\u0639\u064a']}, {u'$kuid': u'GdNV76Ily', u'required': u'true', u'type': u'video', u'name': u'Video', u'label': [u'Video', u'V\xeddeo', u'\u0641\u064a\u062f\u064a\u0648']}, {u'$kuid': u'EDuWkTREB', u'required': u'false', u'type': u'note', u'name': u'Note_Should_not_be_displayed', u'label': [u'Note (Should not be displayed!)', u'Nota (no se represente!)', u'\u0645\u0644\u0627\u062d\u0638\u0629 (\u064a\u062c\u0628 \u0623\u0646 \u0644\u0627 \u064a\u062a\u0645 \u0639\u0631\u0636!)']}, {u'$kuid': u'hwik7tNXF', u'required': u'true', u'type': u'barcode', u'name': u'Barcode', u'label': [u'Barcode', u'C\xf3digo de barras', u'\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f']}, {u'$kuid': u'NTBElbRcj', u'required': u'true', u'type': u'acknowledge', u'name': u'Acknowledge', u'label': [u'Acknowledge', u'Reconocer', u'\u0627\u0639\u062a\u0631\u0641']}, {u'calculation': u'1', u'$kuid': u'x6zr1MtmP', u'required': u'false', u'type': u'calculate', u'name': u'calculation'}], u'translations': [None, u'Espa\xf1ol', u'Arabic'], u'choices': [{u'$kuid': u'xm4h0m4kK', u'list_name': u'choice_list_1', u'name': u'option_1', u'label': [u'First option', u'Primera opci\xf3n', u'\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u0623\u0648\u0644']}, {u'$kuid': u'slcf0IezR', u'list_name': u'choice_list_1', u'name': u'option_2', u'label': [u'Second option', u'Segunda opci\xf3n', u'\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u062b\u0627\u0646\u064a']}, {u'$kuid': u'G7myzY2qX', u'list_name': u'choice_list_2', u'name': u'option_1', u'label': [u'First option', u'Primera opci\xf3n', u'\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u0623\u0648\u0644']}, {u'$kuid': u'xUd28PPBs', u'list_name': u'choice_list_2', u'name': u'option_2', u'label': [u'Second option', u'Segunda opci\xf3n', u'\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u062b\u0627\u0646\u064a']}]}
+F1 = {'survey': [{'$kuid': 'Uf89NP4VX', 'type': 'start', 'name': 'start'},
+                  {'$kuid': 'ZtZBY7XHX', 'type': 'end', 'name': 'end'},
+                  {'name': 'Select_one', 'select_from_list_name': 'choice_list_1', 'required': 'true',
+                   'label': ['Select one', 'Seleccione uno',
+                              '\u0627\u062e\u062a\u0631 \u0648\u0627\u062d\u062f\u0627'], '$kuid': 'WXOeQ4Nc0',
+                   'type': 'select_one'},
+                  {'name': 'Select_Many', 'select_from_list_name': 'choice_list_2', 'required': 'true',
+                   'label': ['Select Many', 'Muchos seleccione',
+                              '\u0627\u062e\u062a\u0631 \u0627\u0644\u0639\u062f\u064a\u062f'], '$kuid': 'BC6BNP91R',
+                   'type': 'select_multiple'},
+                  {'$kuid': '0e7sTrQzo', 'required': 'true', 'type': 'text', 'name': 'Text',
+                   'label': ['Text', 'Texto', '\u0646\u0635']},
+                  {'$kuid': 'ZzKb8DeQu', 'required': 'true', 'type': 'integer', 'name': 'Number',
+                   'label': ['Number', 'N\xfamero', '\u0639\u062f\u062f']},
+                  {'$kuid': 'gLEDxsNZo', 'required': 'true', 'type': 'decimal', 'name': 'Decimal',
+                   'label': ['Decimal', 'Decimal', '\u0639\u062f\u062f \u0639\u0634\u0631\u064a']},
+                  {'$kuid': 'pt2w8z3Xk', 'required': 'true', 'type': 'date', 'name': 'Date',
+                   'label': ['Date', 'Fecha', '\u062a\u0627\u0631\u064a\u062e']},
+                  {'$kuid': '3xn0tP9AI', 'required': 'true', 'type': 'time', 'name': 'Time',
+                   'label': ['Time', 'Hora', '\u0645\u0631\u0629']},
+                  {'$kuid': 'w0nYPBtT0', 'required': 'true', 'type': 'datetime', 'name': 'Date_and_time',
+                   'label': ['Date and time', 'Fecha y hora',
+                              '\u0627\u0644\u062a\u0627\u0631\u064a\u062e \u0648 \u0627\u0644\u0648\u0642\u062a']},
+                  {'$kuid': '0dovjhXG6', 'required': 'false', 'type': 'geopoint', 'name': 'GPS',
+                   'label': ['GPS', 'GPS',
+                              '\u0646\u0638\u0627\u0645 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0648\u0627\u0642\u0639']},
+                  {'$kuid': 'NI2fsrYZI', 'required': 'true', 'type': 'image', 'name': 'Photo',
+                   'label': ['Photo', 'Foto',
+                              '\u0635\u0648\u0631\u0629 \u0641\u0648\u062a\u0648\u063a\u0631\u0627\u0641\u064a\u0629']},
+                  {'$kuid': 'FlfOVztW3', 'required': 'true', 'type': 'audio', 'name': 'Audio',
+                   'label': ['Audio', 'Audio', '\u0633\u0645\u0639\u064a']},
+                  {'$kuid': 'GdNV76Ily', 'required': 'true', 'type': 'video', 'name': 'Video',
+                   'label': ['Video', 'V\xeddeo', '\u0641\u064a\u062f\u064a\u0648']},
+                  {'$kuid': 'EDuWkTREB', 'required': 'false', 'type': 'note',
+                   'name': 'Note_Should_not_be_displayed',
+                   'label': ['Note (Should not be displayed!)', 'Nota (no se represente!)',
+                              '\u0645\u0644\u0627\u062d\u0638\u0629 (\u064a\u062c\u0628 \u0623\u0646 \u0644\u0627 \u064a\u062a\u0645 \u0639\u0631\u0636!)']},
+                  {'$kuid': 'hwik7tNXF', 'required': 'true', 'type': 'barcode', 'name': 'Barcode',
+                   'label': ['Barcode', 'C\xf3digo de barras', '\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f']},
+                  {'$kuid': 'NTBElbRcj', 'required': 'true', 'type': 'acknowledge', 'name': 'Acknowledge',
+                   'label': ['Acknowledge', 'Reconocer', '\u0627\u0639\u062a\u0631\u0641']},
+                  {'calculation': '1', '$kuid': 'x6zr1MtmP', 'required': 'false', 'type': 'calculate',
+                   'name': 'calculation'}], 'translations': [None, 'Espa\xf1ol', 'Arabic'], 'choices': [
+    {'$kuid': 'xm4h0m4kK', 'list_name': 'choice_list_1', 'name': 'option_1',
+     'label': ['First option', 'Primera opci\xf3n',
+                '\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u0623\u0648\u0644']},
+    {'$kuid': 'slcf0IezR', 'list_name': 'choice_list_1', 'name': 'option_2',
+     'label': ['Second option', 'Segunda opci\xf3n',
+                '\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u062b\u0627\u0646\u064a']},
+    {'$kuid': 'G7myzY2qX', 'list_name': 'choice_list_2', 'name': 'option_1',
+     'label': ['First option', 'Primera opci\xf3n',
+                '\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u0623\u0648\u0644']},
+    {'$kuid': 'xUd28PPBs', 'list_name': 'choice_list_2', 'name': 'option_2',
+     'label': ['Second option', 'Segunda opci\xf3n',
+                '\u0627\u0644\u062e\u064a\u0627\u0631 \u0627\u0644\u062b\u0627\u0646\u064a']}]}
 
 SUBMISSION_DATA = OrderedDict([
     ("start",

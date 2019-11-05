@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from formpack.utils.future import OrderedDict
 
 
 def _convert_sheets_to_lists(content):

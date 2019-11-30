@@ -3,6 +3,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from registration import forms as registration_forms
+from django.contrib.auth.forms import PasswordResetForm as PRF
+from django.contrib.auth import get_user_model
 
 from kobo.static_lists import SECTORS, COUNTRIES
 
@@ -14,6 +16,7 @@ USERNAME_INVALID_MESSAGE = _(
     'and underscores, where the first character must be a letter.'
 )
 
+UserModel = get_user_model()
 
 class RegistrationForm(registration_forms.RegistrationForm):
     username = forms.RegexField(
@@ -65,3 +68,19 @@ class RegistrationForm(registration_forms.RegistrationForm):
             # The 'password' field appears without adding it here; adding it
             # anyway results in a duplicate
         ]
+class PasswordResetFormWithUsername(PRF):
+    username = forms.CharField(
+        label=_("Username"),
+        max_length=254,
+    )
+
+    def get_users(self, email):
+        username = self.cleaned_data['username']
+        active_users = UserModel._default_manager.filter(**{
+            '%s__iexact' % UserModel.get_email_field_name(): email,
+            'is_active': True,
+        })
+        print('--------')
+        print(active_users)
+        print('--------')
+        return (u for u in active_users if u.username == username)

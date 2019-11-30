@@ -11,6 +11,7 @@ from hub.views import switch_builder
 from kpi.forms import RegistrationForm
 from kpi.views import authorized_application_authenticate_user
 from kpi.views import home, one_time_login, browser_tests
+from kpi.views.password_reset_form_with_username import PasswordResetFormWithUsernameView
 from kpi.views.environment import EnvironmentView
 from kpi.views.current_user import CurrentUserViewSet
 from kpi.views.token import TokenView
@@ -42,6 +43,7 @@ urlpatterns = [
         form_class=RegistrationForm), name='registration_register'),
     url(r'^accounts/logout/', 'django.contrib.auth.views.logout',
         {'next_page': '/'}),
+    url(r'^accounts/password/reset/', PasswordResetFormWithUsernameView.as_view(), name='passwordresetwithusername'),
     url(r'^accounts/', include('registration.backends.default.urls')),
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     url(

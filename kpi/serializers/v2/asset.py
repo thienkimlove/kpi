@@ -1,16 +1,29 @@
 # coding: utf-8
 import json
 
+from django.conf import settings
 from rest_framework import serializers
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.reverse import reverse
 
-from kpi.constants import PERM_PARTIAL_SUBMISSIONS, PERM_VIEW_SUBMISSIONS
+from kpi.constants import (
+    ASSET_STATUS_DISCOVERABLE,
+    ASSET_STATUS_PRIVATE,
+    ASSET_STATUS_PUBLIC,
+    ASSET_STATUS_SHARED,
+    ASSET_TYPES,
+    ASSET_TYPE_COLLECTION,
+    PERM_DISCOVER_ASSET,
+    PERM_VIEW_ASSET,
+    PERM_PARTIAL_SUBMISSIONS,
+    PERM_VIEW_SUBMISSIONS,
+)
 from kpi.fields import RelativePrefixHyperlinkedRelatedField, WritableJSONField, \
     PaginatedApiField
 from kpi.models import Asset, AssetVersion
-from kpi.models.asset import ASSET_TYPES, ASSET_TYPE_COLLECTION
+from kpi.models.asset import UserAssetSubscription
 from kpi.models.object_permission import get_anonymous_user
+
 from kpi.utils.object_permission_helper import ObjectPermissionHelper
 
 from .asset_version import AssetVersionListSerializer
@@ -73,6 +86,10 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class="kpi.serializers.v2.asset.AssetListSerializer"
     )
 
+    languages = serializers.SerializerMethodField()
+    subscribers_count = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = Asset
         lookup_field = 'uid'
@@ -116,7 +133,10 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
                   'settings',
                   'data',
                   'children',
-                 )
+                  'languages',
+                  'subscribers_count',
+                  'status',
+                  )
         extra_kwargs = {
             'parent': {
                 'lookup_field': 'uid',
@@ -302,6 +322,31 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
             }
             for codename in asset.ASSIGNABLE_PERMISSIONS_BY_TYPE[asset.asset_type]]
 
+    def get_languages(self, asset):
+
+        if asset.asset_type != ASSET_TYPE_COLLECTION:
+            return asset.summary.get('languages', [])
+
+        summaries = asset.children.values_list('summary', flat=True).all()
+        return self._get_languages(summaries)
+
+    def get_subscribers_count(self, asset):
+        if asset.asset_type != ASSET_TYPE_COLLECTION:
+            return 0
+
+        return UserAssetSubscription.objects.filter(asset_id=asset.pk).count()
+
+    def get_status(self, asset):
+
+        # `order_by` lets us check `AnonymousUser`'s permissions first.
+        # No need to read all permissions if `AnonymousUser`'s permissions are found.
+        perm_assignments = asset.permissions. \
+            values('user_id', 'permission__codename'). \
+            exclude(user_id=asset.owner_id). \
+            order_by('user_id', 'permission__codename')
+
+        return self._get_status(perm_assignments)
+
     def get_permissions(self, obj):
         context = self.context
         request = self.context.get('request')
@@ -321,6 +366,63 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
     def _content(self, obj):
         return json.dumps(obj.content)
 
+    def _get_languages(self, summaries):
+        """
+        Returns distinct languages found in `summaries`
+
+        Args:
+            summaries (list<str>): List of Asset.summary
+        Returns:
+            list
+        """
+        languages = set()
+        for summary in summaries:
+            try:
+                child_languages = json.loads(summary).get('languages', [])
+                child_languages = [language
+                                   for language in child_languages
+                                   if language is not None]
+            except ValueError:
+                continue
+
+            if child_languages:
+                languages = set(list(languages) + child_languages)
+
+        return list(languages)
+
+    def _get_status(self, perm_assignments):
+        """
+        Returns asset status.
+
+        **Asset's owner's permissions must be excluded from `perm_assignments`**
+
+        Args:
+            perm_assignments (list): List of dicts `{<user_id>, <codename}`
+                                     ordered by `user_id`
+                                     e.g.: [{-1, 'view_asset'},
+                                            {2, 'view_asset'}]
+
+        Returns:
+            str: Status slug among these:
+                 - 'private'
+                 - 'public'
+                 - 'public-discoverable'
+                 - 'shared'
+
+        """
+        if not perm_assignments:
+            return ASSET_STATUS_PRIVATE
+
+        for perm_assignment in perm_assignments:
+            if perm_assignment.get('user_id') == settings.ANONYMOUS_USER_ID:
+                if perm_assignment.get('permission__codename') == PERM_DISCOVER_ASSET:
+                    return ASSET_STATUS_DISCOVERABLE
+
+                if perm_assignment.get('permission__codename') == PERM_VIEW_ASSET:
+                    return ASSET_STATUS_PUBLIC
+
+            return ASSET_STATUS_SHARED
+
     def _table_url(self, obj):
         request = self.context.get('request', None)
         return reverse('asset-table-view',
@@ -329,6 +431,7 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class AssetListSerializer(AssetSerializer):
+
     class Meta(AssetSerializer.Meta):
         # WARNING! If you're changing something here, please update
         # `Asset.optimize_queryset_for_list()`; otherwise, you'll cause an
@@ -355,14 +458,34 @@ class AssetListSerializer(AssetSerializer):
                   'permissions',
                   'downloads',
                   'data',
+                  'languages',
+                  'subscribers_count',
+                  'status',
                   )
 
-    def get_permissions(self, obj):
+    def get_languages(self, asset):
+        if asset.asset_type != ASSET_TYPE_COLLECTION:
+            return asset.summary.get('languages', [])
+
+        try:
+            summaries = self.context['summaries_per_asset'].get(asset.pk, [])
+        except KeyError:
+            # Maybe overkill, there are no reasons to enter here.
+            # in the list context, `summaries_per_asset` should be always
+            # a property of `self.context`
+            return super().get_languages(asset)
+
+        return self._get_languages(summaries)
+
+    def get_permissions(self, asset):
         try:
             asset_permission_assignments = self.context[
-                'object_permissions_per_object'].get(obj.pk)
+                'object_permissions_per_asset'].get(asset.pk)
         except KeyError:
-            return super().get_permissions(obj)
+            # Maybe overkill, there are no reasons to enter here.
+            # in the list context, `object_permissions_per_asset` should be always
+            # a property of `self.context`
+            return super().get_permissions(asset)
 
         context = self.context
         request = self.context.get('request')
@@ -370,17 +493,54 @@ class AssetListSerializer(AssetSerializer):
         # Need to pass `asset` and `asset_uid` to context of
         # AssetPermissionAssignmentSerializer serializer to avoid extra queries to DB
         # within the serializer to retrieve the asset object.
-        context['asset'] = obj
-        context['asset_uid'] = obj.uid
+        context['asset'] = asset
+        context['asset_uid'] = asset.uid
 
         user_assignments = ObjectPermissionHelper. \
-            get_user_permission_assignments(obj,
+            get_user_permission_assignments(asset,
                                             request.user,
                                             asset_permission_assignments)
 
         return AssetPermissionAssignmentSerializer(user_assignments,
                                                    many=True, read_only=True,
                                                    context=context).data
+
+    def get_subscribers_count(self, asset):
+        if asset.asset_type != ASSET_TYPE_COLLECTION:
+            return 0
+
+        try:
+            return self.context['user_subscriptions_per_asset'].get(asset.pk, 0)
+        except KeyError:
+            # Maybe overkill, there are no reasons to enter here.
+            # in the list context, `user_subscriptions_per_asset` should be always
+            # a property of `self.context`
+            return super().get_subscribers_count(asset)
+
+    def get_status(self, asset):
+
+        try:
+            asset_perm_assignments = self.context[
+                'object_permissions_per_asset'].get(asset.pk)
+        except KeyError:
+            # Maybe overkill, there are no reasons to enter here.
+            # in the list context, `object_permissions_per_asset` should be always
+            # a property of `self.context`
+            return super().get_status(asset)
+
+        perm_assignments = []
+
+        # Prepare perm_assignments for `_get_status()`
+        for perm_assignment in asset_perm_assignments:
+            if perm_assignment.user_id != asset.owner_id:
+                perm_assignments.append({
+                    'user_id': perm_assignment.user_id,
+                    'permission__codename': perm_assignment.permission.codename
+                })
+
+        perm_assignments.sort(key=lambda pa: pa.get('user_id'))
+
+        return self._get_status(perm_assignments)
 
 
 class AssetUrlListSerializer(AssetSerializer):

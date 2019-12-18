@@ -759,9 +759,7 @@ class ObjectPermissionMixin:
             if deny is False and \
                     fq_permission not in settings.ALLOWED_ANONYMOUS_PERMISSIONS:
                 raise ValidationError(
-                    'Anonymous users cannot have the permission {}.'.format(
-                        codename)
-                )
+                    f'Anonymous users cannot have the permission {codename}.')
             # Get the User database representation for AnonymousUser
             user_obj = get_anonymous_user()
         perm_model = Permission.objects.get(

@@ -184,6 +184,7 @@ ANONYMOUS_USER_ID = -1
 # Permissions assigned to AnonymousUser are restricted to the following
 ALLOWED_ANONYMOUS_PERMISSIONS = (
     'kpi.view_asset',
+    'kpi.discover_asset',
     'kpi.view_submissions',
 )
 
@@ -707,3 +708,4 @@ SESSION_ENGINE = "redis_sessions.session"
 SESSION_REDIS = RedisHelper.config(default="redis://redis_cache:6380/2")
 
 TESTING = False
+ENV = None

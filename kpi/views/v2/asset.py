@@ -2,7 +2,6 @@
 import copy
 import json
 from collections import defaultdict
-from hashlib import md5
 
 
 from django.contrib.contenttypes.models import ContentType
@@ -38,7 +37,7 @@ from kpi.renderers import AssetJsonRenderer, SSJsonRenderer, XFormRenderer, \
     XlsRenderer
 from kpi.serializers import DeploymentSerializer
 from kpi.serializers.v2.asset import AssetListSerializer, AssetSerializer
-from kpi.utils.strings import hashable_str
+from kpi.utils.hash import get_hash
 from kpi.utils.kobo_to_xlsform import to_xlsform_structure
 from kpi.utils.ss_structure_to_mdtable import ss_structure_to_mdtable
 
@@ -383,7 +382,7 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
             assets_version_ids.sort()
 
             if len(assets_version_ids) > 0:
-                hash = md5(hashable_str("".join(assets_version_ids))).hexdigest()
+                hash = get_hash("".join(assets_version_ids))
             else:
                 hash = ""
 
@@ -440,9 +439,8 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
         return Response(response_data, template_name='highlighted_xform.html')
 
     @action(detail=True, 
-        methods=['get', 'post', 'patch'],
-        permission_classes=[PostMappedToChangePermission]
-    )
+            methods=['get', 'post', 'patch'],
+            permission_classes=[PostMappedToChangePermission])
     def deployment(self, request, uid):
         """
         A GET request retrieves the existing deployment, if any.

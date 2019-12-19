@@ -16,6 +16,7 @@ from rest_framework_extensions.mixins import NestedViewSetMixin
 from kpi.constants import (
     ASSET_TYPES,
     ASSET_TYPE_ARG_NAME,
+    ASSET_TYPE_COLLECTION,
     ASSET_TYPE_SURVEY,
     ASSET_TYPE_TEMPLATE,
     CLONE_ARG_NAME,

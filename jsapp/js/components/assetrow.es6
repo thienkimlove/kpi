@@ -18,6 +18,7 @@ import {
   formatTime,
   t
 } from '../utils';
+import {getAssetOwnerDisplayName} from 'js/assetUtils';
 
 class AssetRow extends React.Component {
   constructor(props){
@@ -49,7 +50,7 @@ class AssetRow extends React.Component {
     this.setState({isTagsInputVisible: isTagsInputVisible});
   }
   escFunction (evt) {
-    if (evt.keyCode === KEY_CODES.ESC && this.state.isTagsInputVisible) {
+    if (evt.keyCode === KEY_CODES.get('ESC') && this.state.isTagsInputVisible) {
       this.clickTagsToggle();
     }
   }
@@ -110,7 +111,7 @@ class AssetRow extends React.Component {
     }
 
     if (this.isLibrary()) {
-      hrefTo = `/library/${this.props.uid}/edit`;
+      hrefTo = `/library/asset/${this.props.uid}`;
       parent = this.state.parent || undefined;
       ownedCollections = this.props.ownedCollections.map(function(c){
         var p = false;
@@ -199,7 +200,7 @@ class AssetRow extends React.Component {
                 <span>{ isSelfOwned ? ' ' : this.props.owner__username }</span>
               }
               { this.props.asset_type != ASSET_TYPES.survey.id &&
-                <span>{isSelfOwned ? t('me') : this.props.owner__username}</span>
+                <span>{getAssetOwnerDisplayName(this.props.owner__username)}</span>
               }
             </bem.AssetRow__cell>
 
@@ -278,7 +279,7 @@ class AssetRow extends React.Component {
                   data-tip= {t('Share')}
                   data-disabled={false}
                   >
-                <i className='k-icon-share' />
+                <i className='k-icon-user-share' />
               </bem.AssetRow__actionIcon>
             }
 
@@ -310,7 +311,7 @@ class AssetRow extends React.Component {
               </bem.AssetRow__actionIcon>
             }
 
-            { this.props.kind === 'collection' &&
+            { this.props.asset_type === ASSET_TYPES.collection.id &&
               [/*'view',*/ 'sharing'].map((actn)=>{
                 return (
                       <bem.AssetRow__actionIcon
@@ -399,7 +400,7 @@ class AssetRow extends React.Component {
                             <i className='k-icon-folder' />
                             {col.label}
                             {col.hasParent &&
-                              <span className='has-parent'>&bull;</span>
+                              <span className='is-parent'>&bull;</span>
                             }
                         </bem.PopoverMenu__item>
                       );

@@ -1,29 +1,30 @@
 $z-form-view-fullscreen: 101;
 
-.form-view__toptabs {
-  background: white;
-  text-align: center;
-  height: 48px;
-  border-bottom: 1px solid $divider-color;
-}
+// form landing takes .form-view__toptabs into account
+.page-wrapper__content--form-landing {
+  .form-view {
+    height: calc(100% - 48px);
+  }
 
-.form-view__sidetabs {
-  border-right: 1px solid $divider-color;
-  width: 170px;
-  height: 100%;
-  max-height: calc(100% - 48px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  float: left;
-  background: white;
-  padding-top: 20px;
+  .form-view__sidetabs {
+    max-height: calc(100% - 48px);
+
+    & + .form-view,
+    & + .report-view,
+    & + .loading {
+      width: calc(100% - 170px);
+      height: calc(100% - 48px);
+      overflow: auto;
+      overflow-x: hidden;
+    }
+  }
 }
 
 .form-view {
   width: 100%;
-  height: calc(100% - 48px);
+  height: 100%;
   overflow-y: auto;
-  background: $cool-whitegray;
+  background: $cool-whitesilver;
 
   &.form-view--fullscreen {
     position: fixed;
@@ -42,54 +43,25 @@ $z-form-view-fullscreen: 101;
   }
 }
 
-.form-view__sidetabs + .form-view,
-.form-view__sidetabs + .report-view,
-.form-view__sidetabs + .loading {
-  width: calc(100% - 170px);
-  height: calc(100% - 48px);
-  overflow: auto;
+.form-view__sidetabs {
+  border-right: 1px solid $divider-color;
+  width: 170px;
+  height: 100%;
+  max-height: 100%;
   overflow-x: hidden;
-}
+  overflow-y: auto;
+  float: left;
+  background: white;
+  padding-top: 20px;
 
-.form-view__sidetabs + .loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  align-content: center;
+  & + .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
 
-  .loading__inner code {
-    margin: 20px auto;
-  }
-}
-
-.form-view__sidetabs + .form-view.form-view--table {
-  overflow: hidden;
-}
-
-.form-view__toptabs {
-  position: relative;
-
-  a.form-view__tab {
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    padding: 13px 30px;
-    text-transform: uppercase;
-    margin-right: 10px;
-    font-size: 15px;
-    cursor: pointer;
-    position: relative;
-    color: lighten($cool-gray, 10%);
-    font-weight: normal;
-    display: inline-block;
-
-    &.active {
-      color: $black;
-      border-bottom: 2px solid $cool-green;
-    }
-
-    &:hover {
-      color: $black;
+    .loading__inner code {
+      margin: 20px auto;
     }
   }
 
@@ -98,9 +70,7 @@ $z-form-view-fullscreen: 101;
     right: 0;
     top: 5px;
   }
-}
 
-.form-view__sidetabs {
   a.form-view__tab {
     background: transparent;
     border: none;
@@ -135,34 +105,61 @@ $z-form-view-fullscreen: 101;
   }
 }
 
+.form-view__toptabs {
+  position: relative;
+  background: white;
+  text-align: center;
+  height: 48px;
+  border-bottom: 1px solid $divider-color;
+
+  a.form-view__tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 13px 30px;
+    text-transform: uppercase;
+    margin-right: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    position: relative;
+    color: lighten($cool-gray, 10%);
+    font-weight: normal;
+    display: inline-block;
+
+    &.active {
+      color: $black;
+      border-bottom: 2px solid $cool-green;
+    }
+
+    &:hover {
+      color: $black;
+    }
+  }
+
+  a.form-view__link--close {
+    position: absolute;
+    right: 0;
+    top: 5px;
+  }
+}
+
 .form-view__row {
   margin: 40px;
-  margin-right: 44px;
 
   + .form-view__row {
     margin-top: 0;
   }
+}
 
-  &.historyHidden {
-    margin-top: -15px;
+.form-view__row--history {
+  .form-view__cell--history-table {
+    margin-bottom: 20px;
   }
+}
 
-  &.historyHidden .form-view__cell--history-label,
-  &.historyHidden .form-view__cell--history-table {
-    max-height: 0;
-    overflow: hidden;
-    transition: 0.2s max-height;
-  }
-
-  &.historyExpanded .form-view__cell--history-label,
-  &.historyExpanded .form-view__cell--history-table {
-    transition: 0.2s max-height;
-    max-height: 99999px;
-  }
-
-  &.historyExpanded .form-view__cell--history-table + .form-view__cell {
-    padding-top: 20px;
-  }
+.form-view__cell-label {
+  font-size: 12px;
+  opacity: 0.6;
 }
 
 .form-view__cell {
@@ -178,6 +175,14 @@ $z-form-view-fullscreen: 101;
     align-items: center;
   }
 
+  &.form-view__cell--column-1 {
+    flex: 1;
+  }
+
+  &.form-view__cell--column-2 {
+    flex: 2;
+  }
+
   &.form-view__cell--bordertop {
     border-top: 1px solid $cool-lightgray;
   }
@@ -186,17 +191,29 @@ $z-form-view-fullscreen: 101;
     padding: 20px;
   }
 
+  &.form-view__cell--padding-small {
+    padding: 10px 20px;
+  }
+
+  // preferably with or inside .form-view__cell--first
   &.form-view__cell--label {
     font-size: 14px;
     color: $black;
     font-weight: 500;
-    padding-bottom: 20px;
 
     span {
       display: block;
       color: $cool-gray;
       font-size: 12px;
     }
+
+    &::first-letter {
+      text-transform: uppercase;
+    }
+  }
+
+  &.form-view__cell--first {
+    padding-bottom: 20px;
   }
 
   &.form-view__cell--first {
@@ -212,6 +229,7 @@ $z-form-view-fullscreen: 101;
   }
 
   &.form-view__cell--buttons {
+    text-align: right;
     a.mdl-button {
       text-transform: uppercase;
       padding-left: 30px;
@@ -228,11 +246,19 @@ $z-form-view-fullscreen: 101;
     display: inline-block;
   }
 
+  // visually make same amount of white space as without buttons
+  &.form-view__cell--label + &.form-view__cell--action-buttons {
+    margin: -8px 0;
+  }
+
   &.form-view__cell--date {
     font-weight: normal;
     opacity: 0.8;
     display: inline-block;
-    margin-left: 6px;
+
+    &:not(:first-child) {
+      margin-left: 6px;
+    }
   }
 
   &.form-view__cell--translation-list {
@@ -275,6 +301,29 @@ $z-form-view-fullscreen: 101;
     border-radius: 2px;
   }
 
+  &.form-view__cell--toggle-details {
+    button {
+      cursor: pointer;
+      color: $cool-blue;
+      background: transparent;
+      text-transform: uppercase;
+      border: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      padding: 2px 0;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      .k-icon {
+        font-size: 24px;
+        vertical-align: -8px;
+      }
+    }
+  }
+
   &.form-view__cell--warning {
     margin: 10px 20px;
     margin-top: 0;
@@ -313,6 +362,7 @@ $z-form-view-fullscreen: 101;
   color: $cool-gray;
   cursor: pointer;
   vertical-align: middle;
+  display: inline-block;
 
   &:hover {
     color: $cool-blue;
@@ -359,6 +409,11 @@ $z-form-view-fullscreen: 101;
 .form-view__group {
   .dropzone {
     display: inline;
+  }
+
+  .popover-menu .popover-menu__toggle {
+    // TODO: this is too generic, find out what was this really set for
+    height: 36px;
   }
 
   &--items {
@@ -410,13 +465,13 @@ $z-form-view-fullscreen: 101;
     }
   }
 
-  &--deployments {
+  .form-view__group--deployments {
     .form-view__group--items:hover {
       background: $hover-asset-row;
     }
   }
 
-  &--headings {
+  .form-view__group--headings {
     font-weight: 600;
     border-top: none;
 

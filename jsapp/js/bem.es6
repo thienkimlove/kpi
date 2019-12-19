@@ -38,7 +38,7 @@ bem.ServiceRow__column = bem.ServiceRow.__('column');
 bem.ServiceRow__actionButton = bem.ServiceRow.__('action-button', '<button>');
 bem.ServiceRowButton = BEM('service-row-button', '<button>');
 
-bem.FormBuilder = bem('formBuilder');
+bem.FormBuilder = BEM('formBuilder');
 bem.FormBuilder__row = bem.FormBuilder.__('row');
 bem.FormBuilder__contents = bem.FormBuilder.__('contents');
 
@@ -47,19 +47,19 @@ bem.FormBuilderMeta__columns = bem.FormBuilderMeta.__('columns');
 bem.FormBuilderMeta__column = bem.FormBuilderMeta.__('column');
 bem.FormBuilderMeta__row = bem.FormBuilderMeta.__('row');
 
-bem.FormBuilderAside = bem('form-builder-aside');
+bem.FormBuilderAside = BEM('form-builder-aside');
 bem.FormBuilderAside__content = bem.FormBuilderAside.__('content');
 bem.FormBuilderAside__header = bem.FormBuilderAside.__('header', '<h2>');
 bem.FormBuilderAside__row = bem.FormBuilderAside.__('row', '<section>');
 
-bem.FormBuilderHeader = bem('formBuilder-header');
+bem.FormBuilderHeader = BEM('formBuilder-header');
 bem.FormBuilderHeader__row = bem.FormBuilderHeader.__('row');
 bem.FormBuilderHeader__cell = bem.FormBuilderHeader.__('cell');
 bem.FormBuilderHeader__item = bem.FormBuilderHeader.__('item', '<span>');
 bem.FormBuilderHeader__button = bem.FormBuilderHeader.__('button', '<button>');
 bem.FormBuilderHeader__close = bem.FormBuilderHeader.__('close', '<button>');
 
-bem.FormMeta = bem('form-meta');
+bem.FormMeta = BEM('form-meta');
 bem.FormMeta__content = bem.FormMeta.__('content');
 bem.FormMeta__button = bem.FormMeta.__('button');
 
@@ -91,9 +91,7 @@ bem.LibList__label = bem.LibList.__('label');
 bem.LibList__dragbox = bem.LibList.__('dragbox');
 bem.LibList__qtype = bem.LibList.__('qtype');
 
-bem.CollectionsWrapper = bem('collections-wrapper');
-
-bem.CollectionNav = bem('collection-nav');
+bem.CollectionNav = BEM('collection-nav');
 bem.CollectionNav__search = bem.CollectionNav.__('search');
 bem.CollectionNav__searchcriteria = bem.CollectionNav.__('searchcriteria', '<ul>');
 bem.CollectionNav__searchcriterion = bem.CollectionNav.__('searchcriterion', '<li>');
@@ -103,27 +101,17 @@ bem.CollectionNav__link = bem.CollectionNav.__('link', '<a>');
 bem.CollectionNav__searchcancel = bem.CollectionNav.__('searchcancel', '<i>');
 bem.CollectionNav__searchicon = bem.CollectionNav.__('searchicon', '<i>');
 
-bem.Library = bem('library');
+bem.Library = BEM('library');
 bem.Library__typeFilter = bem.Library.__('type-filter', '<label>');
 
-bem.List = bem('list');
+bem.List = BEM('list');
 bem.List__heading = bem.List.__('heading');
 bem.List__subheading = bem.List.__('subheading');
 
-bem.AssetList = bem('asset-list');
-bem.AssetItems = bem('asset-items', '<ul>');
+bem.AssetList = BEM('asset-list');
+bem.AssetItems = BEM('asset-items', '<ul>');
 
-bem.FormSidebar = bem('form-sidebar');
-bem.FormSidebar__wrapper = bem.FormSidebar.__('wrapper');
-bem.FormSidebar__item = bem.FormSidebar.__('item');
-bem.FormSidebar__label = bem.FormSidebar.__('label');
-bem.FormSidebar__labelCount = bem.FormSidebar.__('label-count', '<span>');
-bem.FormSidebar__grouping = bem.FormSidebar.__('grouping');
-bem.FormSidebar__itemlink = bem.FormSidebar.__('itemlink', '<a>');
-bem.FormSidebar__iteminner = bem.FormSidebar.__('iteminner', '<span>');
-bem.FormSidebar__itembyline = bem.FormSidebar.__('itembyline', '<span>');
-
-bem.AssetListSorts = bem('asset-list-sorts', '<div>');
+bem.AssetListSorts = BEM('asset-list-sorts', '<div>');
 bem.AssetListSorts__item = bem.AssetListSorts.__('item');
 
 bem.Message = BEM('message');
@@ -155,6 +143,7 @@ bem.FormView__iconButton = bem.FormView.__('icon-button', '<button>');
 
 bem.FormView__row = bem.FormView.__('row');
 bem.FormView__cell = bem.FormView.__('cell');
+bem.FormView__cellLabel = bem.FormView.__('cell-label');
 bem.FormView__column = bem.FormView.__('column');
 
 bem.FormView__banner = bem.FormView.__('banner');
@@ -168,9 +157,10 @@ bem.FormView__map = bem.FormView.__('map');
 bem.FormView__mapButton = bem.FormView.__('map-button');
 bem.FormView__mapList = bem.FormView.__('map-list');
 
-bem.FormTitle = BEM('form-title');
-bem.FormTitle__name = bem.FormTitle.__('name');
-bem.FormTitle__submissions = bem.FormTitle.__('submissions');
+bem.MainHeader = BEM('main-header', '<header>');
+bem.MainHeader__icon = bem.MainHeader.__('icon', '<i>');
+bem.MainHeader__title = bem.MainHeader.__('title');
+bem.MainHeader__counter = bem.MainHeader.__('counter');
 
 
 bem.ReportView = BEM('report-view');
@@ -189,12 +179,12 @@ bem.GraphSettings__charttype = bem.GraphSettings.__('charttype');
 bem.GraphSettings__colors = bem.GraphSettings.__('colors');
 bem.GraphSettings__radio = bem.GraphSettings.__('radio');
 
-bem.FormModal = bem('form-modal');
+bem.FormModal = BEM('form-modal');
 bem.FormModal__form = bem.FormModal.__('form', '<form>');
 bem.FormModal__item = bem.FormModal.__('item');
 bem.FormModal__group = bem.FormModal.__('group');
 
-bem.Modal = bem('modal');
+bem.Modal = BEM('modal');
 bem.Modal__backdrop = bem.Modal.__('backdrop');
 bem.Modal__body = bem.Modal.__('body');
 bem.Modal__content = bem.Modal.__('content');
@@ -206,7 +196,7 @@ bem.Modal__footerButton = bem.Modal.__('footer-button', '<button>');
 bem.Modal__tabs = bem.Modal.__('tabs');
 bem.Modal__hr = bem.Modal.__('hr', '<hr>');
 
-bem.PopoverMenu = bem('popover-menu');
+bem.PopoverMenu = BEM('popover-menu');
 bem.PopoverMenu__content = bem.PopoverMenu.__('content');
 bem.PopoverMenu__toggle = bem.PopoverMenu.__('toggle', '<a>');
 bem.PopoverMenu__link = bem.PopoverMenu.__('link', '<a>');
@@ -249,12 +239,20 @@ bem.UserRow__editor = bem.UserRow.__('editor');
 bem.uiPanel = BEM('ui-panel');
 bem.uiPanel__body = bem.uiPanel.__('body');
 
-bem.KDrawer = bem('k-drawer');
+bem.FormSidebar = BEM('form-sidebar');
+bem.FormSidebar__item = bem.FormSidebar.__('item', '<a>');
+bem.FormSidebar__itemText = bem.FormSidebar.__('item-text');
+bem.FormSidebar__label = bem.FormSidebar.__('label', '<a>');
+bem.FormSidebar__labelText = bem.FormSidebar.__('label-text');
+bem.FormSidebar__labelCount = bem.FormSidebar.__('label-count');
+bem.FormSidebar__grouping = bem.FormSidebar.__('grouping');
+
+bem.KDrawer = BEM('k-drawer');
 bem.KDrawer__primaryIcons = bem.KDrawer.__('primary-icons', 'nav');
 bem.KDrawer__secondaryIcons = bem.KDrawer.__('secondary-icons', 'nav');
 bem.KDrawer__sidebar = bem.KDrawer.__('sidebar', 'aside');
 
-bem.HelpBubble = bem('help-bubble');
+bem.HelpBubble = BEM('help-bubble');
 bem.HelpBubble__close = bem.HelpBubble.__('close', 'button');
 bem.HelpBubble__back = bem.HelpBubble.__('back', 'button');
 bem.HelpBubble__trigger = bem.HelpBubble.__('trigger', 'button');
@@ -266,6 +264,23 @@ bem.HelpBubble__row = bem.HelpBubble.__('row');
 bem.HelpBubble__rowAnchor = bem.HelpBubble.__('row', 'a');
 bem.HelpBubble__rowWrapper = bem.HelpBubble.__('row-wrapper');
 
+bem.AssetsTable = BEM('assets-table');
+bem.AssetsTable__header = bem.AssetsTable.__('header');
+bem.AssetsTable__body = bem.AssetsTable.__('body');
+bem.AssetsTable__footer = bem.AssetsTable.__('footer');
+bem.AssetsTableRow = BEM('assets-table-row');
+bem.AssetsTableRow__link = bem.AssetsTableRow.__('link', '<a>');
+bem.AssetsTableRow__buttons = bem.AssetsTableRow.__('buttons');
+bem.AssetsTableRow__column = bem.AssetsTableRow.__('column');
+bem.AssetsTableRow__tags = bem.AssetsTableRow.__('tags', '<ul>');
+bem.AssetsTableRow__tag = bem.AssetsTableRow.__('tag', '<li>');
+bem.AssetsTablePagination = BEM('assets-table-pagination');
+bem.AssetsTablePagination__button = bem.AssetsTablePagination.__('button', '<button>');
+bem.AssetsTablePagination__index = bem.AssetsTablePagination.__('index');
+
+bem.AssetActionButtons = BEM('asset-action-buttons', '<menu>');
+bem.AssetActionButtons__iconButton = bem.AssetActionButtons.__('icon-button', '<a>');
+
 bem.tagSelect = BEM('tag-select');
 bem.collectionFilter = BEM('collection-filter');
 
@@ -276,17 +291,17 @@ bem.TextBox__input = bem.TextBox.__('input', '<input>');
 bem.TextBox__description = bem.TextBox.__('description');
 bem.TextBox__error = bem.TextBox.__('error');
 
-bem.Checkbox = bem('checkbox');
+bem.Checkbox = BEM('checkbox');
 bem.Checkbox__wrapper = bem.Checkbox.__('wrapper', '<label>');
 bem.Checkbox__input = bem.Checkbox.__('input', '<input>');
 bem.Checkbox__label = bem.Checkbox.__('label', '<span>');
 
-bem.Radio = bem('radio');
+bem.Radio = BEM('radio');
 bem.Radio__row = bem.Radio.__('row', '<label>');
 bem.Radio__input = bem.Radio.__('input', '<input>');
 bem.Radio__label = bem.Radio.__('label', '<span>');
 
-bem.PasswordStrength = bem('password-strength');
+bem.PasswordStrength = BEM('password-strength');
 bem.PasswordStrength__title = bem.PasswordStrength.__('title');
 bem.PasswordStrength__bar = bem.PasswordStrength.__('bar');
 bem.PasswordStrength__indicator = bem.PasswordStrength.__('indicator');

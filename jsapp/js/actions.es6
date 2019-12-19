@@ -15,6 +15,7 @@ import RefluxPromise from './libs/reflux-promise';
 import {dataInterface} from './dataInterface';
 import {permissionsActions} from './actions/permissions';
 import {helpActions} from './actions/help';
+import libraryActions from './actions/library';
 import {
   log,
   t,
@@ -27,7 +28,8 @@ Reflux.use(RefluxPromise(window.Promise));
 
 export const actions = {
   permissions: permissionsActions,
-  help: helpActions
+  help: helpActions,
+  library: libraryActions
 };
 
 actions.navigation = Reflux.createActions([
@@ -86,28 +88,10 @@ actions.search = Reflux.createActions({
       'completed',
       'failed'
     ]
-  },
-  collections: {
-    children: [
-      'completed',
-      'failed'
-    ]
   }
 });
 
 actions.resources = Reflux.createActions({
-  listCollections: {
-    children: [
-      'completed',
-      'failed'
-    ]
-  },
-  createAsset: {
-    children: [
-      'completed',
-      'failed'
-    ]
-  },
   createImport: {
     children: [
       'completed',
@@ -151,21 +135,6 @@ actions.resources = Reflux.createActions({
     ]
   },
   listTags: {
-    children: [
-      'completed',
-      'failed'
-    ]
-  },
-  createCollection: {
-    children: [
-      'completed',
-      'failed'
-    ]
-  },
-  updateCollection: {
-    asyncResult: true
-  },
-  deleteCollection: {
     children: [
       'completed',
       'failed'
@@ -256,12 +225,6 @@ permissionsActions.assignAssetPermission.failed.listen(() => {
 permissionsActions.removeAssetPermission.failed.listen(() => {
   notify(t('Failed to remove permissions'), 'error');
 });
-permissionsActions.assignCollectionPermission.failed.listen(() => {
-  notify(t('Failed to update permissions'), 'error');
-});
-permissionsActions.removeCollectionPermission.failed.listen(() => {
-  notify(t('Failed to update permissions'), 'error');
-});
 permissionsActions.assignAssetPermission.completed.listen((uid) => {
   // needed to update publicShareSettings after enabling link sharing
   actions.resources.loadAsset({id: uid});
@@ -269,12 +232,12 @@ permissionsActions.assignAssetPermission.completed.listen((uid) => {
 permissionsActions.copyPermissionsFrom.completed.listen((sourceUid, targetUid) => {
   actions.resources.loadAsset({id: targetUid});
 });
+permissionsActions.setAssetPublic.completed.listen((uid) => {
+  actions.resources.loadAsset({id: uid});
+});
 permissionsActions.removeAssetPermission.completed.listen((uid) => {
   // needed to update publicShareSettings after disabling link sharing
   actions.resources.loadAsset({id: uid});
-});
-permissionsActions.setCollectionDiscoverability.completed.listen((val) => {
-  actions.resources.loadAsset({url: val.url});
 });
 
 actions.misc.checkUsername.listen(function(username){
@@ -545,31 +508,6 @@ actions.resources.deleteAsset.listen(function(details, params={}){
     });
 });
 
-actions.resources.deleteCollection.listen(function(details, params = {}){
-  dataInterface.deleteCollection(details)
-    .done(function(result) {
-      actions.resources.deleteCollection.completed(details, result);
-      if (typeof params.onComplete === 'function') {
-        params.onComplete(details, result);
-      }
-    })
-    .fail(actions.resources.deleteCollection.failed);
-});
-actions.resources.deleteCollection.failed.listen(() => {
-  notify(t('Failed to delete collection.'), 'error');
-});
-
-actions.resources.updateCollection.listen(function(uid, values){
-  dataInterface.patchCollection(uid, values)
-    .done(function(asset){
-      actions.resources.updateCollection.completed(asset);
-      notify(t('successfully updated'));
-    })
-    .fail(function(...args){
-      actions.resources.updateCollection.failed(...args);
-    });
-});
-
 actions.resources.cloneAsset.listen(function(details, params={}){
   dataInterface.cloneAsset(details)
     .done((asset) => {
@@ -584,7 +522,7 @@ actions.resources.cloneAsset.failed.listen(() => {
   notify(t('Could not create project!'), 'error');
 });
 
-actions.search.assets.listen(function(searchData, params={}){
+actions.search.assets.listen(function(searchData, params = {}){
   dataInterface.searchAssets(searchData)
     .done(function(response){
       actions.search.assets.completed(searchData, response);
@@ -599,8 +537,6 @@ actions.search.assets.listen(function(searchData, params={}){
       }
     });
 });
-
-
 
 // reload so a new csrf token is issued
 actions.auth.logout.completed.listen(function(){
@@ -664,34 +600,15 @@ actions.auth.getApiToken.failed.listen(() => {
 });
 
 actions.resources.loadAsset.listen(function(params){
-  var dispatchMethodName;
-  if (params.url) {
-    dispatchMethodName = params.url.indexOf('collections') === -1 ?
-        'getAsset' : 'getCollection';
-  } else if (params.id) {
-    dispatchMethodName = {
-      c: 'getCollection',
-      a: 'getAsset'
-    }[params.id[0]];
-  }
-
-  if (dispatchMethodName) {
-    dataInterface[dispatchMethodName](params)
-      .done(actions.resources.loadAsset.completed)
-      .fail(actions.resources.loadAsset.failed);
-  }
+  dataInterface.getAsset(params)
+    .done(actions.resources.loadAsset.completed)
+    .fail(actions.resources.loadAsset.failed);
 });
 
 actions.resources.loadAssetContent.listen(function(params){
   dataInterface.getAssetContent(params)
     .done(actions.resources.loadAssetContent.completed)
     .fail(actions.resources.loadAssetContent.failed);
-});
-
-actions.resources.listCollections.listen(function(){
-  dataInterface.listCollections()
-    .done(actions.resources.listCollections.completed)
-    .fail(actions.resources.listCollections.failed);
 });
 
 actions.resources.updateSubmissionValidationStatus.listen(function(uid, sid, data){

@@ -52,7 +52,7 @@ export default assign({
     this.loadAsideSettings();
 
     if (this.state.editorState === 'existing') {
-      let uid = this.props.params.assetid;
+      let uid = this.props.params.assetid || this.props.params.uid;
       stores.allAssets.whenLoaded(uid, (asset) => {
         this.setState({asset: asset});
 
@@ -283,9 +283,9 @@ export default assign({
         });
     } else {
       // update existing asset
-      var assetId = this.props.params.assetid;
+      const uid = this.props.params.assetid || this.props.params.uid;
 
-      actions.resources.updateAsset.triggerAsync(assetId, params)
+      actions.resources.updateAsset.triggerAsync(uid, params)
         .then(() => {
           this.unpreventClosingTab();
           this.setState({

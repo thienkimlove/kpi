@@ -1,0 +1,247 @@
+/* ==========================================================================
+ * AssetsTable
+ * ========================================================================== */
+
+.assets-table {
+  width: 100%;
+  background-color: $white;
+}
+
+.assets-table__footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-top: 2px solid $divider-color;
+  color: $cool-gray;
+  height: 40px;
+}
+
+.assets-table--my-library,
+.assets-table--public-collections {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .assets-table__body {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+/* ==========================================================================
+ * AssetsTablePagination
+ * ========================================================================== */
+
+.assets-table-pagination {
+  display: inline-block;
+  color: inherit;
+}
+
+.assets-table-pagination__index {
+  display: inline;
+  margin: 0 10px;
+}
+
+.assets-table-pagination__button {
+  appearance: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  height: 20px;
+
+  &:hover {
+    color: $cool-darkgray;
+  }
+
+  &:active {
+    color: $cool-charcoal;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .k-icon {
+    font-size: 20px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
+/* ==========================================================================
+ * AssetsTableRow
+ * ========================================================================== */
+
+$z-assets-table-row-link: 10;
+$z-assets-table-row-buttons: 20;
+$c-assets-table-row-hover: $cool-whitegray;
+
+.assets-table-row {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  align-items: flex-start;
+
+  &.assets-table-row--asset {
+    &:hover {
+      background-color: $cool-whitegray;
+
+      .k-icon[data-counter]::after {
+        background-color: $c-assets-table-row-hover;
+      }
+
+      .assets-table-row__buttons {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+
+    .assets-table-row__column--icon-status {
+      padding: 3px 0 0 0;
+
+      .k-icon {
+        font-size: 32px;
+      }
+    }
+  }
+
+  &.assets-table-row--header .assets-table-row__column {
+    border-top: 0;
+    border-bottom: 1px solid $divider-color;
+    cursor: pointer;
+    font-weight: 700;
+    white-space: nowrap;
+    height: 40px;
+    line-height: 20px;
+
+    &:hover {
+      background-color: $cool-whitegray;
+    }
+
+    &:active {
+      border-bottom-color: transparent;
+    }
+
+    .k-icon {
+      font-size: 20px;
+      // to take up space when empty
+      min-width: 20px;
+      display: inline-block;
+    }
+  }
+
+  &.assets-table-row--empty-message {
+    padding: 40px;
+    justify-content: center;
+  }
+
+  .assets-table-row__link {
+    cursor: pointer;
+    position: absolute;
+    z-index: $z-assets-table-row-link;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .assets-table-row__column {
+    border-top: 1px solid $divider-color;
+    padding: 10px;
+
+    &.assets-table-row__column--icon-status {
+      width: 50px;
+      text-align: center;
+    }
+
+    &.assets-table-row__column--name {
+      flex: 1;
+    }
+
+    &.assets-table-row__column--owner {
+      width: 10%;
+    }
+
+    &.assets-table-row__column--subscribers {
+      width: 10%;
+    }
+
+    &.assets-table-row__column--organization {
+      width: 10%;
+    }
+
+    &.assets-table-row__column--languages {
+      width: 10%;
+    }
+
+    &.assets-table-row__column--primary-sector {
+      width: 15%;
+    }
+
+    &.assets-table-row__column--country {
+      width: 7.5%;
+    }
+
+    &.assets-table-row__column--last-modified {
+      width: 17.5%;
+      text-align: right;
+    }
+
+    .k-icon {
+      vertical-align: middle;
+    }
+  }
+}
+
+/* ==========================================================================
+ * AssetsTableRow tags
+ * ========================================================================== */
+
+.assets-table-row__tags {
+  display: inline;
+}
+
+.assets-table-row__tag {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 1em;
+  padding: 2px 4px;
+  font-size: 9px;
+  line-height: 1;
+  color: currentColor;
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* ==========================================================================
+ * AssetsTableRow buttons
+ * ========================================================================== */
+
+.assets-table-row__buttons {
+  position: absolute;
+  z-index: $z-assets-table-row-buttons;
+  top: 1px; // because of top border
+  right: 0;
+  bottom: 0; // stretch for whole row
+  opacity: 0;
+  visibility: hidden;
+  background-color: $c-assets-table-row-hover;
+  padding: 3px 10px 0 0;
+
+  // for nicer blending in with the possible text underneath
+  &::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 0;
+    height: 100%;
+    width: 15px;
+    background: linear-gradient(90deg, transparent, $c-assets-table-row-hover);
+  }
+}

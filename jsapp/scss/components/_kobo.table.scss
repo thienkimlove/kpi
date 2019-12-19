@@ -31,6 +31,11 @@
           color: lighten($cool-blue, 10%);
         }
       }
+
+      .popover-menu .popover-menu__toggle {
+        // overriding 36px from jsapp/scss/components/_kobo.form-view.scss
+        height: auto;
+      }
     }
 
     .form-view__item--table-buttons {
@@ -198,7 +203,7 @@
     }
 
     .-loading {
-      background: #F8F8F8;
+      background: $cool-whitesilver;
 
       .-loading-inner {
         display: block;
@@ -224,7 +229,7 @@
         order: -1;
         position: relative;
         left: 0;
-        background: #F8F8F8;
+        background: $cool-whitesilver;
         height: 36px;
         transition: left 0.2s;
         margin-right: 6px;
@@ -292,7 +297,7 @@
     &--advanced-table-options {
       border: 1px solid $divider-color;
       padding: 20px;
-      background: #F8F8F8;
+      background: $cool-whitesilver;
 
       .form-view__cell--note {
         padding-bottom: 20px;

@@ -296,6 +296,8 @@ class ProjectSettings extends React.Component {
       targetUid = this.state.formAsset.uid;
     } else if (this.context.router && this.context.router.params.assetid) {
       targetUid = this.context.router.params.assetid;
+    } else if (this.context.router && this.context.router.params.uid) {
+      targetUid = this.context.router.params.uid;
     }
 
     if (!targetUid) {
@@ -307,7 +309,7 @@ class ProjectSettings extends React.Component {
 
   goToProjectsList() {
     stores.pageState.hideModal();
-    hashHistory.push('/forms/');
+    hashHistory.push('/forms');
   }
 
   /*

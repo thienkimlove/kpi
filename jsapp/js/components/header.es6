@@ -1,9 +1,9 @@
+import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import reactMixin from 'react-mixin';
 import autoBind from 'react-autobind';
 import { hashHistory } from 'react-router';
-import alertify from 'alertifyjs';
 import ui from '../ui';
 import {stores} from '../stores';
 import Reflux from 'reflux';
@@ -16,12 +16,14 @@ import {
   assign,
   currentLang,
   stringToColor,
-} from '../utils';
+} from 'js/utils';
+import {getAssetIcon} from 'js/assetUtils';
+import {COMMON_QUERIES} from 'js/constants';
 import {searches} from '../searches';
 import {ListSearch} from '../components/list';
-import {NAME_MAX_LENGTH} from 'js/constants';
-
-let typingTimer;
+import HeaderTitleEditor from 'js/components/header/headerTitleEditor';
+import SearchBox from 'js/components/header/searchBox';
+import myLibraryStore from 'js/components/library/myLibraryStore';
 
 class MainHeader extends Reflux.Component {
   constructor(props){
@@ -30,17 +32,18 @@ class MainHeader extends Reflux.Component {
       asset: false,
       currentLang: currentLang(),
       isLanguageSelectorVisible: false,
+      isSearchBoxDisabled: this.getIsSearchBoxDisabled(),
       libraryFiltersContext: searches.getSearchContext('library', {
         filterParams: {
-          assetType: 'asset_type:question OR asset_type:block OR asset_type:template',
+          assetType: COMMON_QUERIES.get('qbt'),
         },
-        filterTags: 'asset_type:question OR asset_type:block OR asset_type:template',
+        filterTags: COMMON_QUERIES.get('qbt'),
       }),
       formFiltersContext: searches.getSearchContext('forms', {
         filterParams: {
-          assetType: 'asset_type:survey',
+          assetType: COMMON_QUERIES.get('s'),
         },
-        filterTags: 'asset_type:survey',
+        filterTags: COMMON_QUERIES.get('s'),
       })
     }, stores.pageState.state);
     this.stores = [
@@ -52,11 +55,20 @@ class MainHeader extends Reflux.Component {
   componentDidMount() {
     document.body.classList.add('hide-edge');
     this.listenTo(stores.asset, this.assetLoad);
+    this.listenTo(myLibraryStore, this.myLibraryStoreChanged);
   }
   componentWillUpdate(newProps) {
     if (this.props.assetid !== newProps.assetid) {
       this.setState({asset: false});
     }
+  }
+  myLibraryStoreChanged() {
+    this.setState({
+      isSearchBoxDisabled: this.getIsSearchBoxDisabled()
+    });
+  }
+  getIsSearchBoxDisabled() {
+    return myLibraryStore.data.totalUserAssets === null;
   }
   assetLoad(data) {
     const asset = data[this.props.assetid];
@@ -66,7 +78,7 @@ class MainHeader extends Reflux.Component {
     actions.auth.logout();
   }
   toggleLanguageSelector() {
-    this.setState({isLanguageSelectorVisible: !this.state.isLanguageSelectorVisible})
+    this.setState({isLanguageSelectorVisible: !this.state.isLanguageSelectorVisible});
   }
   accountSettings () {
     // verifyLogin also refreshes stored profile data
@@ -79,7 +91,7 @@ class MainHeader extends Reflux.Component {
     let langCode = $(evt.target).data('key');
     if (langCode) {
       // use .always (instead of .done) here since Django 1.8 redirects the request
-      dataInterface.setLanguage({language: langCode}).always((r)=>{
+      dataInterface.setLanguage({language: langCode}).always(() => {
         if ('reload' in window.location) {
           window.location.reload();
         } else {
@@ -191,61 +203,20 @@ class MainHeader extends Reflux.Component {
   toggleFixedDrawer() {
     stores.pageState.toggleFixedDrawer();
   }
-  updateAssetTitle() {
-    if (!this.state.asset.name.trim()) {
-      alertify.error(t('Please enter a title for your project'));
-      return false;
-    } else {
-      actions.resources.updateAsset(
-        this.state.asset.uid,
-        {
-          name: this.state.asset.name,
-          settings: JSON.stringify({
-            description: this.state.asset.settings.description
-          })
-        }
-      );
-      return true;
-    }
-  }
-  assetTitleChange (e) {
-    var asset = this.state.asset;
-    if (e.target.name == 'title')
-      asset.name = e.target.value;
-    else
-      asset.settings.description = e.target.value;
 
-    this.setState({
-      asset: asset
-    });
-
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(this.updateAssetTitle.bind(this), 1500);
-  }
-  assetTitleKeyDown(evt) {
-    if (evt.key === 'Enter') {
-      clearTimeout(typingTimer);
-      if (this.updateAssetTitle()) {
-        evt.currentTarget.blur();
-      }
-    }
-  }
-  render () {
-    var userCanEditAsset = false;
-    if (this.state.asset)
+  render() {
+    let userCanEditAsset = false;
+    if (this.state.asset) {
       userCanEditAsset = this.userCan('change_asset', this.state.asset);
+    }
 
-    const formTitleNameMods = [];
-    if (
-      this.state.asset &&
-      typeof this.state.asset.name === 'string' &&
-      this.state.asset.name.length > 125
-    ) {
-      formTitleNameMods.push('long');
+    let iconClassName = '';
+    if (this.state.asset) {
+      iconClassName = getAssetIcon(this.state.asset);
     }
 
     return (
-        <header className='mdl-layout__header'>
+        <bem.MainHeader className='mdl-layout__header'>
           <div className='mdl-layout__header-row'>
             <button className='mdl-button mdl-button--icon' onClick={this.toggleFixedDrawer}>
               <i className='fa fa-bars' />
@@ -260,48 +231,56 @@ class MainHeader extends Reflux.Component {
                 <ListSearch searchContext={this.state.formFiltersContext} placeholderText={t('Search Projects')} />
               </div>
             }
-            { this.isLibrary() &&
+            { this.isLibraryList() &&
               <div className='mdl-layout__header-searchers'>
-                <ListSearch searchContext={this.state.libraryFiltersContext} placeholderText={t('Search Library')} />
+                <SearchBox
+                  placeholder={t('Search Library')}
+                  disabled={this.state.isSearchBoxDisabled}
+                />
               </div>
             }
+            { this.isLibrarySingle() && this.state.asset &&
+              <React.Fragment>
+                <bem.MainHeader__icon className={iconClassName} />
+
+                <HeaderTitleEditor
+                  uid={this.state.asset.uid}
+                  type={this.state.asset.asset_type}
+                  name={this.state.asset.name}
+                  isEditable={userCanEditAsset}
+                />
+              </React.Fragment>
+            }
             { this.isFormSingle() && this.state.asset &&
-              <bem.FormTitle>
-                { this.state.asset.has_deployment ?
-                  <i className='k-icon-deploy' />
-                :
-                  <i className='k-icon-drafts' />
-                }
-                <bem.FormTitle__name m={formTitleNameMods}>
-                  <input
-                    type='text'
-                    maxLength={NAME_MAX_LENGTH}
-                    name='title'
-                    placeholder={t('Project title')}
-                    value={this.state.asset.name ? this.state.asset.name : ''}
-                    onChange={this.assetTitleChange.bind(this)}
-                    onKeyDown={this.assetTitleKeyDown}
-                    disabled={!userCanEditAsset}
-                  />
-                </bem.FormTitle__name>
+              <React.Fragment>
+                <bem.MainHeader__icon className={iconClassName} />
+
+                <HeaderTitleEditor
+                  uid={this.state.asset.uid}
+                  type={this.state.asset.asset_type}
+                  name={this.state.asset.name}
+                  isEditable={userCanEditAsset}
+                />
+
                 { this.state.asset.has_deployment &&
-                  <bem.FormTitle__submissions>
+                  <bem.MainHeader__counter>
                     {this.state.asset.deployment__submission_count} {t('submissions')}
-                  </bem.FormTitle__submissions>
+                  </bem.MainHeader__counter>
                 }
-              </bem.FormTitle>
+              </React.Fragment>
             }
             {this.renderAccountNavMenu()}
           </div>
           {this.renderGitRevInfo()}
-        </header>
+        </bem.MainHeader>
       );
   }
   componentWillReceiveProps(nextProps) {
-    if (this.props.assetid != nextProps.assetid && nextProps.assetid != null)
+    if (this.props.assetid !== nextProps.assetid && nextProps.assetid !== null) {
       actions.resources.loadAsset({id: nextProps.assetid});
+    }
   }
-};
+}
 
 reactMixin(MainHeader.prototype, Reflux.ListenerMixin);
 reactMixin(MainHeader.prototype, mixins.contextRouter);

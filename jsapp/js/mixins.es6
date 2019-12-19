@@ -55,7 +55,7 @@ mixins.dmix = {
       value: name,
       labels: {ok: t('Ok'), cancel: t('Cancel')},
       onok: (evt, value) => {
-        let uid = this.props.params.assetid;
+        const uid = this.props.params.assetid || this.props.params.uid;
         actions.resources.cloneAsset({
           uid: uid,
           name: value,
@@ -143,8 +143,8 @@ mixins.dmix = {
     dialog.set(opts).show();
   },
   deployAsset (asset) {
-    if (!asset || asset.kind != 'asset') {
-        if (this.state && this.state.kind == 'asset') {
+    if (!asset || asset.asset_type !== ASSET_TYPES.survey.id) {
+        if (this.state && this.state.asset_type === ASSET_TYPES.survey.id) {
           asset = this.state;
         } else {
           console.error('Neither the arguments nor the state supplied an asset.');
@@ -160,7 +160,7 @@ mixins.dmix = {
   archiveAsset (uid, callback) {
     mixins.clickAssets.click.asset.archive(uid, callback);
   },
-  unarchiveAsset (uid=null, callback) {
+  unarchiveAsset (uid = null, callback) {
     if (uid === null) {
       mixins.clickAssets.click.asset.unarchive(this.state, callback);
     } else {
@@ -219,7 +219,7 @@ mixins.dmix = {
     const uid = this._getAssetUid();
 
     if (this.props.randdelay && uid) {
-      window.setTimeout(()=>{
+      window.setTimeout(() => {
         actions.resources.loadAsset({id: uid});
       }, Math.random() * 3000);
     } else if (uid) {
@@ -234,7 +234,7 @@ mixins.dmix = {
  */
 const applyImport = (params) => {
   const applyPromise = new Promise((resolve, reject) => {
-    dataInterface.postCreateImport(params).then((data)=> {
+    dataInterface.postCreateImport(params).then((data) => {
       const doneCheckInterval = setInterval(() => {
         dataInterface.getImportDetails({
           uid: data.uid,
@@ -262,7 +262,7 @@ const applyImport = (params) => {
               reject(importData);
             }
           }
-        }).fail((failData)=>{
+        }).fail((failData) => {
           clearInterval(doneCheckInterval);
           reject(failData);
         });
@@ -319,12 +319,12 @@ mixins.droppable = {
     return applyPromise;
   },
 
-  _forEachDroppedFile (params={}) {
+  _forEachDroppedFile (params = {}) {
     let router = this.context.router;
     let isProjectReplaceInForm = (
       this.props.context === PROJECT_SETTINGS_CONTEXTS.REPLACE
       && router.isActive('forms')
-      && router.params.assetid != undefined
+      && router.params.assetid !== undefined
     );
     var library = router.isActive('library');
     var multipleFiles = params.totalFiles > 1 ? true : false;
@@ -346,7 +346,7 @@ mixins.droppable = {
       }
     }
 
-    dataInterface.postCreateImport(params).then((data)=> {
+    dataInterface.postCreateImport(params).then((data) => {
       window.setTimeout((() => {
         dataInterface.getImportDetails({
           uid: data.uid,
@@ -361,8 +361,9 @@ mixins.droppable = {
               if (!assetUid) {
                 // TODO: use a more specific error message here
                 alertify.error(t('XLSForm Import failed. Check that the XLSForm and/or the URL are valid, and try again using the "Replace form" icon.'));
-                if (params.assetUid)
+                if (params.assetUid) {
                   hashHistory.push(`/forms/${params.assetUid}`);
+                }
               } else {
                 if (isProjectReplaceInForm) {
                   actions.resources.loadAsset({id: assetUid});
@@ -392,22 +393,22 @@ mixins.droppable = {
           } else {
             alertify.error(t('Import Failed!'));
           }
-        }).fail((failData)=>{
+        }).fail((failData) => {
           alertify.error(t('Import Failed!'));
           log('import failed', failData);
         });
         stores.pageState.hideModal();
       }), 2500);
-    }).fail((jqxhr)=> {
+    }).fail((jqxhr) => {
       log('Failed to create import: ', jqxhr);
       alertify.error(t('Failed to create import.'));
     });
   },
 
-  dropFiles (files, rejectedFiles, evt, pms={}) {
+  dropFiles (files, rejectedFiles, evt, pms = {}) {
     files.map((file) => {
       var reader = new FileReader();
-      reader.onload = (e)=> {
+      reader.onload = (e) => {
         let params = assign({
           base64Encoded: e.target.result,
           name: file.name,
@@ -431,22 +432,6 @@ mixins.droppable = {
       }
     }
   }
-};
-
-mixins.collectionList = {
-  getInitialState () {
-    // initial state is a copy of "stores.collections.initialState"
-    return assign({}, stores.collections.initialState);
-  },
-  listCollections () {
-    actions.resources.listCollections();
-  },
-  componentDidMount () {
-    this.listenTo(stores.collections, this.collectionsChanged);
-  },
-  collectionsChanged (collections) {
-    this.setState(collections);
-  },
 };
 
 mixins.clickAssets = {
@@ -507,10 +492,11 @@ mixins.clickAssets = {
         });
       },
       edit: function (uid) {
-        if (this.context.router.isActive('library'))
-          hashHistory.push(`/library/${uid}/edit`);
-        else
+        if (this.context.router.isActive('library')) {
+          hashHistory.push(`/library/asset/${uid}/edit`);
+        } else {
           hashHistory.push(`/forms/${uid}/edit`);
+        }
       },
       delete: function(uid, name, callback) {
         const asset = stores.selectedAsset.asset || stores.allAssets.byUid[uid];
@@ -531,10 +517,11 @@ mixins.clickAssets = {
         };
 
         if (!deployed) {
-          if (asset.asset_type != ASSET_TYPES.survey.id)
+          if (asset.asset_type !== ASSET_TYPES.survey.id) {
             msg = t('You are about to permanently delete this item from your library.');
-          else
+          } else {
             msg = t('You are about to permanently delete this draft.');
+          }
         } else {
           msg = `${t('You are about to permanently delete this form.')}`;
           if (asset.deployment__submission_count !== 0) {
@@ -580,8 +567,13 @@ mixins.clickAssets = {
         let asset = stores.selectedAsset.asset;
         mixins.dmix.deployAsset(asset);
       },
-      archive: function(uid, callback) {
-        let asset = stores.selectedAsset.asset || stores.allAssets.byUid[uid];
+      archive: function(assetOrUid, callback) {
+        let asset;
+        if (typeof assetOrUid === 'object') {
+          asset = assetOrUid;
+        } else {
+          asset = stores.selectedAsset.asset || stores.allAssets.byUid[assetOrUid];
+        }
         let dialog = alertify.dialog('confirm');
         let opts = {
           title: t('Archive Project'),
@@ -605,7 +597,7 @@ mixins.clickAssets = {
       },
       unarchive: function(assetOrUid, callback) {
         let asset;
-        if (typeof assetOrUid == 'object') {
+        if (typeof assetOrUid === 'object') {
           asset = assetOrUid;
         } else {
           asset = stores.selectedAsset.asset || stores.allAssets.byUid[assetOrUid];
@@ -697,16 +689,22 @@ mixins.permissions = {
 
 mixins.contextRouter = {
   isFormList () {
-    return this.context.router.isActive('forms') && this.context.router.params.assetid == undefined;
+    return this.context.router.isActive('forms') && this.currentAssetID() === undefined;
   },
   isLibrary () {
     return this.context.router.isActive('library');
   },
+  isLibraryList () {
+    return this.context.router.isActive('library') && this.currentAssetID() === undefined;
+  },
+  isLibrarySingle () {
+    return this.context.router.isActive('library') && this.currentAssetID() !== undefined;
+  },
   isFormSingle () {
-    return this.context.router.isActive('forms') && this.context.router.params.assetid != undefined;
+    return this.context.router.isActive('forms') && this.currentAssetID() !== undefined;
   },
   currentAssetID () {
-    return this.context.router.params.assetid;
+    return this.context.router.params.assetid || this.context.router.params.uid;
   },
   currentAsset () {
     return stores.asset.data[this.currentAssetID()];
@@ -715,20 +713,16 @@ mixins.contextRouter = {
     return this.context.router.isActive(path, indexOnly);
   },
   isFormBuilder () {
-    if (this.context.router.isActive('/library/new'))
+    if (this.context.router.isActive('/library/new-asset')) {
       return true;
+    }
 
-    if (this.context.router.isActive('/library/new/template'))
-      return true;
-
-    if (this.context.router.params.assetid == undefined)
-      return false;
-
-    var assetid = this.context.router.params.assetid;
-    if (this.context.router.isActive(`/library/${assetid}/edit`))
-      return true;
-
-    return this.context.router.isActive(`/forms/${assetid}/edit`);
+    const uid = this.currentAssetID();
+    return (
+      uid !== undefined &&
+      this.context.router.isActive(`/library/asset/${uid}/edit`) ||
+      this.context.router.isActive(`/forms/${uid}/edit`)
+    );
   }
 };
 

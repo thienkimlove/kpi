@@ -339,7 +339,7 @@ export class TranslationSettings extends React.Component {
                       data-tip={t('Update translations')}
                       className='right-tooltip'
                     >
-                      <i className='k-icon-globe-alt' />
+                      <i className='k-icon-language-settings' />
                     </bem.FormView__iconButton>
 
                     {i !== 0 &&

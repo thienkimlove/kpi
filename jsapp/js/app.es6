@@ -8,7 +8,6 @@ import $ from 'jquery';
 window.jQuery = $;
 window.$ = $;
 require('jquery-ui/ui/widgets/sortable');
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
@@ -32,10 +31,13 @@ import mixins from './mixins';
 import MainHeader from './components/header';
 import Drawer from './components/drawer';
 import {
-  AddToLibrary,
   FormPage,
-  LibraryPage
+  LibraryAssetCreator,
+  LibraryAssetEditor
 } from './components/formEditors';
+import MyLibraryRoute from 'js/components/library/myLibraryRoute';
+import PublicCollectionsRoute from 'js/components/library/publicCollectionsRoute';
+import AssetRoute from 'js/components/library/assetRoute';
 import Reports from './components/reports';
 import FormLanding from './components/formLanding';
 import FormSummary from './components/formSummary';
@@ -49,10 +51,10 @@ import {
   assign,
   currentLang
 } from './utils';
-import {keymap} from './keymap';
+import keymap from './keymap';
 import { ShortcutManager, Shortcuts } from 'react-shortcuts';
-import LibrarySearchableList from './lists/library';
 import FormsSearchableList from './lists/forms';
+import permConfig from 'js/components/permissions/permConfig';
 
 const shortcutManager = new ShortcutManager(keymap);
 
@@ -66,14 +68,17 @@ class App extends React.Component {
   }
   componentWillReceiveProps() {
     // slide out drawer overlay on every page change (better mobile experience)
-    if (this.state.pageState.showFixedDrawer)
+    if (this.state.pageState.showFixedDrawer) {
       stores.pageState.setState({showFixedDrawer: false});
+    }
     // hide modal on every page change
-    if (this.state.pageState.modal)
+    if (this.state.pageState.modal) {
       stores.pageState.hideModal();
+    }
   }
-  componentDidMount () {
+  componentDidMount() {
     actions.misc.getServerEnvironment();
+    permConfig.fetchAndBuildConfig();
   }
   _handleShortcuts(action) {
     switch (action) {
@@ -83,10 +88,19 @@ class App extends React.Component {
     }
   }
   getChildContext() {
-    return { shortcuts: shortcutManager };
+    return {shortcuts: shortcutManager};
   }
   render() {
-    var assetid = this.props.params.assetid || null;
+    var assetid = this.props.params.assetid || this.props.params.uid || null;
+
+    const pageWrapperContentModifiers = [];
+    if (this.isFormSingle()) {
+      pageWrapperContentModifiers.push('form-landing');
+    }
+    if (this.isLibrarySingle()) {
+      pageWrapperContentModifiers.push('library-landing');
+    }
+
     return (
       <DocumentTitle title='KoBoToolbox'>
         <Shortcuts
@@ -94,43 +108,47 @@ class App extends React.Component {
           handler={this._handleShortcuts}
           className='mdl-wrapper'
           global
-          isolate>
+          isolate
+        >
+          <IntercomHandler/>
 
-        <IntercomHandler/>
-
-          { !this.isFormBuilder() &&
+          {!this.isFormBuilder() &&
             <div className='k-header__bar' />
           }
-          <bem.PageWrapper m={{
+
+          <bem.PageWrapper
+            m={{
               'fixed-drawer': this.state.pageState.showFixedDrawer,
               'in-formbuilder': this.isFormBuilder()
-                }} className='mdl-layout mdl-layout--fixed-header'>
-              { this.state.pageState.modal &&
-                <Modal params={this.state.pageState.modal} />
-              }
+            }}
+            className='mdl-layout mdl-layout--fixed-header'
+          >
+            { this.state.pageState.modal &&
+              <Modal params={this.state.pageState.modal} />
+            }
 
-              { !this.isFormBuilder() &&
+            { !this.isFormBuilder() &&
+              <React.Fragment>
                 <MainHeader assetid={assetid}/>
-              }
-              { !this.isFormBuilder() &&
                 <Drawer/>
-              }
-              <bem.PageWrapper__content className='mdl-layout__content' m={this.isFormSingle() ? 'form-landing' : ''}>
-                { !this.isFormBuilder() &&
-                  <FormViewTabs type={'top'} show={this.isFormSingle()} />
-                }
-                { !this.isFormBuilder() &&
-                  <FormViewTabs type={'side'} show={this.isFormSingle()} />
-                }
-                {this.props.children}
+              </React.Fragment>
+            }
 
-              </bem.PageWrapper__content>
+            <bem.PageWrapper__content className='mdl-layout__content' m={pageWrapperContentModifiers}>
+              { !this.isFormBuilder() &&
+                <React.Fragment>
+                  <FormViewTabs type={'top'} show={this.isFormSingle()} />
+                  <FormViewTabs type={'side'} show={this.isFormSingle()} />
+                </React.Fragment>
+              }
+              {this.props.children}
+            </bem.PageWrapper__content>
           </bem.PageWrapper>
         </Shortcuts>
       </DocumentTitle>
     );
   }
-};
+}
 
 App.contextTypes = {
   router: PropTypes.object
@@ -153,7 +171,8 @@ class FormJson extends React.Component {
   }
   componentDidMount () {
     this.listenTo(stores.asset, this.assetStoreTriggered);
-    actions.resources.loadAsset({id: this.props.params.assetid});
+    const uid = this.props.params.assetid || this.props.params.uid;
+    actions.resources.loadAsset({id: uid});
 
   }
   assetStoreTriggered (data, uid) {
@@ -188,7 +207,8 @@ class FormXform extends React.Component {
     };
   }
   componentDidMount () {
-    dataInterface.getAssetXformView(this.props.params.assetid).done((content) => {
+    const uid = this.props.params.assetid || this.props.params.uid;
+    dataInterface.getAssetXformView(uid).done((content)=>{
       this.setState({
         xformLoaded: true,
         xformHtml: {
@@ -251,16 +271,28 @@ export var routes = (
     <Route path='account-settings' component={AccountSettings} />
     <Route path='change-password' component={ChangePassword} />
 
+    {/*
     <Route path='library' >
-      <Route path='new' component={AddToLibrary} />
-      <Route path='new/template' component={AddToLibrary} />
+      <Route path='new' component={LibraryAssetCreator} />
+      <Route path='new/template' component={LibraryAssetCreator} />
       <Route path='/library/:assetid'>
-        {/*<Route name="library-form-download" path="download" handler={FormDownload} />,*/}
         <Route path='json' component={FormJson} />,
         <Route path='xform' component={FormXform} />,
-        <Route path='edit' component={LibraryPage} />
+        <Route path='edit' component={LibraryAssetEditor} />
       </Route>
       <IndexRoute component={LibrarySearchableList} />
+    </Route>
+    */}
+
+    <Route path='library'>
+      <Route path='my-library' component={MyLibraryRoute}/>
+      <Route path='public-collections' component={PublicCollectionsRoute}/>
+      <Route path='new-asset' component={LibraryAssetCreator}/>
+      <Route path='asset/:uid' component={AssetRoute}/>
+      <Route path='asset/:uid/edit' component={LibraryAssetEditor}/>
+      <Route path='asset/:uid/json' component={FormJson}/>
+      <Route path='asset/:uid/xform' component={FormXform}/>
+      <IndexRedirect to='my-library'/>
     </Route>
 
     <IndexRedirect to='forms' />
@@ -268,7 +300,6 @@ export var routes = (
       <IndexRoute component={FormsSearchableList} />
 
       <Route path='/forms/:assetid'>
-        {/*<Route name="form-download" path="download" component={FormDownload} />*/}
         <Route path='json' component={FormJson} />
         <Route path='xform' component={FormXform} />
         <Route path='edit' component={FormPage} />

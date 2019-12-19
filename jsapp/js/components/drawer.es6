@@ -14,13 +14,16 @@ import {searches} from '../searches';
 import ui from '../ui';
 import mixins from '../mixins';
 
-import LibrarySidebar from '../components/librarySidebar';
+import LibrarySidebar from 'js/components/library/librarySidebar';
 import {
   IntercomHelpBubble,
   SupportHelpBubble
 } from '../components/helpBubbles';
 
-import {MODAL_TYPES} from '../constants';
+import {
+  COMMON_QUERIES,
+  MODAL_TYPES
+} from '../constants';
 
 import {
   t,
@@ -50,9 +53,9 @@ class FormSidebar extends Reflux.Component {
       headerFilters: 'forms',
       searchContext: searches.getSearchContext('forms', {
         filterParams: {
-          assetType: 'asset_type:survey',
+          assetType: COMMON_QUERIES.get('s'),
         },
-        filterTags: 'asset_type:survey',
+        filterTags: COMMON_QUERIES.get('s'),
       })
     });
   }
@@ -64,12 +67,12 @@ class FormSidebar extends Reflux.Component {
   }
   render () {
     return (
-      <bem.FormSidebar__wrapper>
+      <React.Fragment>
         <button onClick={this.newFormModal} className='mdl-button mdl-button--raised mdl-button--colored'>
           {t('new')}
         </button>
         <SidebarFormsList/>
-      </bem.FormSidebar__wrapper>
+      </React.Fragment>
     );
   }
   componentWillReceiveProps() {
@@ -131,7 +134,6 @@ class Drawer extends Reflux.Component {
   constructor(props){
     super(props);
     autoBind(this);
-    this.state = assign(stores.session, stores.pageState);
     this.stores = [
       stores.session,
       stores.pageState,

@@ -7,7 +7,6 @@
 
 import _ from 'underscore';
 import Reflux from 'reflux';
-import $ from 'jquery';
 import SparkMD5 from 'spark-md5';
 
 import {stores} from './stores';
@@ -330,7 +329,7 @@ function SearchContext(opts={}) {
 
   search.completed.listen(function(searchParams, data, _opts){
     data.results = data.results.map(parsed);
-    data.results.forEach(stores.allAssets.registerAssetOrCollection);
+    data.results.forEach(stores.allAssets.registerAsset);
 
     var count = data.count;
 

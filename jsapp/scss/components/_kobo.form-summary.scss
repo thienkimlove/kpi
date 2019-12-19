@@ -12,9 +12,10 @@
   }
 }
 
-.form-view__cell--description {
-  border-top: 1px solid $divider-color;
-  padding: 20px;
+.form-view__row--summary-description {
+  .form-view__cell--description:not(:first-child) {
+    border-top: 1px solid $divider-color;
+  }
 }
 
 .form-view__group--summary-details-cols {
@@ -57,7 +58,7 @@
 
       &.active {
         color: $cool-gray;
-        background: #F8F8F8;
+        background: $cool-whitesilver;
         position: relative;
 
         &:after {
@@ -65,7 +66,7 @@
           height: 0;
           border-left: 10px solid transparent;
           border-right: 10px solid transparent;
-          border-top: 10px solid #F8F8F8;
+          border-top: 10px solid $cool-whitesilver;
           content: '';
           position: absolute;
           bottom: -9px;

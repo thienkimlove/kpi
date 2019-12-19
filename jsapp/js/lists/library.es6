@@ -4,12 +4,10 @@ import reactMixin from 'react-mixin';
 import autoBind from 'react-autobind';
 import Select from 'react-select';
 import Reflux from 'reflux';
-
+import {COMMON_QUERIES} from 'js/constants';
 import {searches} from '../searches';
 import mixins from '../mixins';
-import {stores} from '../stores';
 import {bem} from '../bem';
-import ui from '../ui';
 import {dataInterface} from '../dataInterface';
 import SearchCollectionList from '../components/searchcollectionlist';
 import {
@@ -22,11 +20,11 @@ class LibrarySearchableList extends React.Component {
     super(props);
 
     this.TYPE_FILTER = {
-      ALL: 'asset_type:question OR asset_type:block OR asset_type:template',
-      BY_QUESTION: 'asset_type:question',
-      BY_BLOCK: 'asset_type:block',
-      BY_TEMPLATE: 'asset_type:template'
-    }
+      ALL: COMMON_QUERIES.get('qbt'),
+      BY_QUESTION: COMMON_QUERIES.get('q'),
+      BY_BLOCK: COMMON_QUERIES.get('b'),
+      BY_TEMPLATE: COMMON_QUERIES.get('t')
+    };
     this.TYPE_FILTER_DEFAULT = this.TYPE_FILTER.ALL;
 
     this.state = {
@@ -38,14 +36,14 @@ class LibrarySearchableList extends React.Component {
     };
     autoBind(this);
   }
-  queryCollections () {
-    dataInterface.listCollections().then((collections)=>{
+  queryCollections() {
+    dataInterface.getCollections().then((collections) => {
       this.setState({
         sidebarCollections: collections.results,
       });
     });
   }
-  componentDidMount () {
+  componentDidMount() {
     this.searchDefault();
     this.queryCollections();
   }
@@ -59,7 +57,7 @@ class LibrarySearchableList extends React.Component {
     });
     this.searchDefault();
   }
-  render () {
+  render() {
     const typeFilterOptions = [
       {value: this.TYPE_FILTER.ALL, label: t('Show All')},
       {value: this.TYPE_FILTER.BY_QUESTION, label: t('Question')},
@@ -83,7 +81,6 @@ class LibrarySearchableList extends React.Component {
         </bem.Library__typeFilter>
 
         <SearchCollectionList
-          showDefault
           searchContext={this.state.searchContext}
         />
 
@@ -95,7 +92,7 @@ class LibrarySearchableList extends React.Component {
       </bem.Library>
       );
   }
-};
+}
 
 LibrarySearchableList.contextTypes = {
   router: PropTypes.object

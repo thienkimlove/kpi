@@ -29,15 +29,20 @@ import {stores} from '../stores';
 import {t} from '../utils';
 import {
   PROJECT_SETTINGS_CONTEXTS,
-  MODAL_TYPES
-} from '../constants';
+  MODAL_TYPES,
+  ASSET_TYPES
+} from 'js/constants';
+import {AssetTagsForm} from './modalForms/assetTagsForm';
+import {LibraryAssetForm} from './modalForms/libraryAssetForm';
+import LibraryNewItemForm from './modalForms/libraryNewItemForm';
+import LibraryUploadForm from './modalForms/libraryUploadForm';
 import ProjectSettings from './modalForms/projectSettings';
+import RESTServicesForm from './RESTServices/RESTServicesForm';
+import SharingForm from './permissions/sharingForm';
 import Submission from './modalForms/submission';
 import TableColumnFilter from './modalForms/tableColumnFilter';
 import TranslationSettings from './modalForms/translationSettings';
 import TranslationTable from './modalForms/translationTable';
-import SharingForm from './permissions/sharingForm';
-import RESTServicesForm from './RESTServices/RESTServicesForm';
 
 class Modal extends React.Component {
   constructor(props) {
@@ -68,8 +73,28 @@ class Modal extends React.Component {
         // title is set by formEditors
         break;
 
+      case MODAL_TYPES.LIBRARY_NEW_ITEM:
+        this.setModalTitle(t('Create Library Item'));
+        break;
+
+      case MODAL_TYPES.LIBRARY_TEMPLATE:
+        this.setModalTitle(t('Template details'));
+        break;
+
+      case MODAL_TYPES.LIBRARY_COLLECTION:
+        this.setModalTitle(t('Collection details'));
+        break;
+
+      case MODAL_TYPES.ASSET_TAGS:
+        this.setModalTitle(t('Edit tags'));
+        break;
+
+      case MODAL_TYPES.LIBRARY_UPLOAD:
+        this.setModalTitle(t('Upload file'));
+        break;
+
       case MODAL_TYPES.ENKETO_PREVIEW:
-        var uid = this.props.params.assetid;
+        const uid = this.props.params.assetid || this.props.params.uid;
         stores.allAssets.whenLoaded(uid, function(asset){
           actions.resources.createSnapshot({
             asset: asset.url,
@@ -163,10 +188,10 @@ class Modal extends React.Component {
 
     if (p.tableInfo) {
       let index = p.ids.indexOf(sid) + (p.tableInfo.pageSize * p.tableInfo.currentPage) + 1;
-      title =  `${t('Submission Record')} (${index} ${t('of')} ${p.tableInfo.resultsTotal})`;
+      title = `${t('Submission Record')} (${index} ${t('of')} ${p.tableInfo.resultsTotal})`;
     } else {
       let index = p.ids.indexOf(sid);
-      title =  `${t('Submission Record')} (${index} ${t('of')} ${p.ids.length})`;
+      title = `${t('Submission Record')} (${index} ${t('of')} ${p.ids.length})`;
     }
 
     return title;
@@ -182,7 +207,7 @@ class Modal extends React.Component {
     };
     dialog.set(opts).show();
   }
-  onModalClose(evt) {
+  onModalClose() {
     if (
       this.props.params.type === MODAL_TYPES.FORM_TRANSLATIONS_TABLE &&
       stores.translations.state.isTranslationTableUnsaved
@@ -196,6 +221,8 @@ class Modal extends React.Component {
     }
   }
   render() {
+    const uid = this.props.params.assetid || this.props.params.uid;
+
     return (
       <ui.Modal
         open
@@ -204,28 +231,57 @@ class Modal extends React.Component {
         className={this.state.modalClass}
       >
         <ui.Modal.Body>
-            { this.props.params.type == MODAL_TYPES.SHARING &&
-              <SharingForm uid={this.props.params.assetid} />
+            { this.props.params.type === MODAL_TYPES.SHARING &&
+              <SharingForm uid={uid} />
             }
-            { this.props.params.type == MODAL_TYPES.NEW_FORM &&
+            { this.props.params.type === MODAL_TYPES.NEW_FORM &&
               <ProjectSettings
                 context={PROJECT_SETTINGS_CONTEXTS.NEW}
                 onSetModalTitle={this.setModalTitle}
               />
             }
-            { this.props.params.type == MODAL_TYPES.REPLACE_PROJECT &&
+            { this.props.params.type === MODAL_TYPES.LIBRARY_NEW_ITEM &&
+              <LibraryNewItemForm
+                onSetModalTitle={this.setModalTitle}
+              />
+            }
+            { this.props.params.type === MODAL_TYPES.LIBRARY_TEMPLATE &&
+              <LibraryAssetForm
+                asset={this.props.params.asset}
+                assetType={ASSET_TYPES.template.id}
+                onSetModalTitle={this.setModalTitle}
+              />
+            }
+            { this.props.params.type === MODAL_TYPES.LIBRARY_COLLECTION &&
+              <LibraryAssetForm
+                asset={this.props.params.asset}
+                assetType={ASSET_TYPES.collection.id}
+                onSetModalTitle={this.setModalTitle}
+              />
+            }
+            { this.props.params.type === MODAL_TYPES.ASSET_TAGS &&
+              <AssetTagsForm
+                asset={this.props.params.asset}
+              />
+            }
+            { this.props.params.type === MODAL_TYPES.LIBRARY_UPLOAD &&
+              <LibraryUploadForm
+                onSetModalTitle={this.setModalTitle}
+              />
+            }
+            { this.props.params.type === MODAL_TYPES.REPLACE_PROJECT &&
               <ProjectSettings
                 context={PROJECT_SETTINGS_CONTEXTS.REPLACE}
                 onSetModalTitle={this.setModalTitle}
                 formAsset={this.props.params.asset}
               />
             }
-            { this.props.params.type == MODAL_TYPES.ENKETO_PREVIEW && this.state.enketopreviewlink &&
+            { this.props.params.type === MODAL_TYPES.ENKETO_PREVIEW && this.state.enketopreviewlink &&
               <div className='enketo-holder'>
                 <iframe src={this.state.enketopreviewlink} />
               </div>
             }
-            { this.props.params.type == MODAL_TYPES.ENKETO_PREVIEW && !this.state.enketopreviewlink &&
+            { this.props.params.type === MODAL_TYPES.ENKETO_PREVIEW && !this.state.enketopreviewlink &&
               <bem.Loading>
                 <bem.Loading__inner>
                   <i />
@@ -233,12 +289,12 @@ class Modal extends React.Component {
                 </bem.Loading__inner>
               </bem.Loading>
             }
-            { this.props.params.type == MODAL_TYPES.ENKETO_PREVIEW && this.state.error &&
+            { this.props.params.type === MODAL_TYPES.ENKETO_PREVIEW && this.state.error &&
               <div>
                 {this.state.message}
               </div>
             }
-            { this.props.params.type == MODAL_TYPES.UPLOADING_XLS &&
+            { this.props.params.type === MODAL_TYPES.UPLOADING_XLS &&
               <div>
                 <bem.Loading>
                   <bem.Loading__inner>
@@ -248,13 +304,13 @@ class Modal extends React.Component {
                 </bem.Loading>
               </div>
             }
-            { this.props.params.type == MODAL_TYPES.SUBMISSION && this.state.sid &&
+            { this.props.params.type === MODAL_TYPES.SUBMISSION && this.state.sid &&
               <Submission sid={this.state.sid}
                           asset={this.props.params.asset}
                           ids={this.props.params.ids}
                           tableInfo={this.props.params.tableInfo || false} />
             }
-            { this.props.params.type == MODAL_TYPES.SUBMISSION && !this.state.sid &&
+            { this.props.params.type === MODAL_TYPES.SUBMISSION && !this.state.sid &&
               <div>
                 <bem.Loading>
                   <bem.Loading__inner>
@@ -263,25 +319,25 @@ class Modal extends React.Component {
                 </bem.Loading>
               </div>
             }
-            { this.props.params.type == MODAL_TYPES.TABLE_COLUMNS &&
+            { this.props.params.type === MODAL_TYPES.TABLE_COLUMNS &&
               <TableColumnFilter asset={this.props.params.asset}
                                  columns={this.props.params.columns}
                                  getColumnLabel={this.props.params.getColumnLabel}
                                  overrideLabelsAndGroups={this.props.params.overrideLabelsAndGroups} />
             }
-            { this.props.params.type == MODAL_TYPES.REST_SERVICES &&
+            { this.props.params.type === MODAL_TYPES.REST_SERVICES &&
               <RESTServicesForm
                 assetUid={this.props.params.assetUid}
                 hookUid={this.props.params.hookUid}
               />
             }
-            { this.props.params.type == MODAL_TYPES.FORM_LANGUAGES &&
+            { this.props.params.type === MODAL_TYPES.FORM_LANGUAGES &&
               <TranslationSettings
                 asset={this.props.params.asset}
                 assetUid={this.props.params.assetUid}
               />
             }
-            { this.props.params.type == MODAL_TYPES.FORM_TRANSLATIONS_TABLE &&
+            { this.props.params.type === MODAL_TYPES.FORM_TRANSLATIONS_TABLE &&
               <TranslationTable
                 asset={this.props.params.asset}
                 langString={this.props.params.langString}
@@ -290,9 +346,9 @@ class Modal extends React.Component {
             }
         </ui.Modal.Body>
       </ui.Modal>
-    )
+    );
   }
-};
+}
 
 reactMixin(Modal.prototype, Reflux.ListenerMixin);
 

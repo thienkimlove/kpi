@@ -1,3 +1,18 @@
+.kobo-select__wrapper {
+  &.kobo-select__wrapper--error {
+    > label,
+    .kobo-select-label,
+    .kobo-select-error,
+    .kobo-select .kobo-select__placeholder {
+      color: $cool-red;
+    }
+
+    .kobo-select .kobo-select__control {
+      border-bottom-color: $cool-red;
+    }
+  }
+}
+
 .kobo-select-label {
   display: block;
   color: inherit;
@@ -9,6 +24,10 @@
   & + .kobo-select {
     margin-top: 10px;
   }
+}
+
+.kobo-select-error {
+  font-size: 12px;
 }
 
 .kobo-select {
@@ -45,9 +64,9 @@
   }
 
   .kobo-select__menu {
+    @include box-shadow;
     // getting select menus to appear over checkboxes
     z-index: 2;
-    @include box-shadow;
   }
 
   .kobo-select__menu-list {
@@ -58,6 +77,7 @@
     &.kobo-select__option--is-focused {
       background-color: lighten($cool-blue, 40%);
     }
+
     &.kobo-select__option--is-selected {
       background-color: $cool-blue;
     }

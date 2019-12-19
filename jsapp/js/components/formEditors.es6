@@ -233,7 +233,7 @@ export class ProjectDownloads extends React.Component {
       <DocumentTitle title={`${docTitle} | KoboToolbox`}>
         <bem.FormView m='form-data-downloads'>
           <bem.FormView__row>
-              <bem.FormView__cell m='label'>
+              <bem.FormView__cell m={['label', 'first']}>
                 {t('Download Data')}
               </bem.FormView__cell>
               <bem.FormView__cell m={['box', 'padding']}>
@@ -318,7 +318,7 @@ export class ProjectDownloads extends React.Component {
           </bem.FormView__row>
           {this.state.exports && !this.state.type.endsWith('_legacy') &&
             <bem.FormView__row>
-                <bem.FormView__cell m='label'>
+                <bem.FormView__cell m={['label', 'first']}>
                   {t('Exports')}
                 </bem.FormView__cell>
                 <bem.FormView__cell m={['box', 'exports-table']}>
@@ -390,7 +390,7 @@ export class ProjectDownloads extends React.Component {
   }
 }
 
-export class AddToLibrary extends React.Component {
+export class LibraryAssetCreator extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -398,11 +398,12 @@ export class AddToLibrary extends React.Component {
       multioptionsExpanded: true,
       surveyAppRendered: false,
       name: '',
-      kind: 'asset',
       asset: false,
       editorState: 'new',
       backRoute: '/library'
     };
+
+    console.debug('LibraryAssetCreator', this.props);
 
     if (this.props.location.pathname === '/library/new/template') {
       this.state.desiredAssetType = ASSET_TYPES.template.id;
@@ -413,7 +414,7 @@ export class AddToLibrary extends React.Component {
 }
 
 newFormMixins.forEach(function(mixin) {
-  reactMixin(AddToLibrary.prototype, mixin);
+  reactMixin(LibraryAssetCreator.prototype, mixin);
 });
 
 let existingFormMixins = [
@@ -440,7 +441,7 @@ export class FormPage extends React.Component {
   }
 }
 
-export class LibraryPage extends React.Component {
+export class LibraryAssetEditor extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -457,8 +458,8 @@ export class LibraryPage extends React.Component {
 
 existingFormMixins.forEach(function(mixin) {
   reactMixin(FormPage.prototype, mixin);
-  reactMixin(LibraryPage.prototype, mixin);
+  reactMixin(LibraryAssetEditor.prototype, mixin);
 });
 
 FormPage.contextTypes = contextTypes;
-LibraryPage.contextTypes = contextTypes;
+LibraryAssetEditor.contextTypes = contextTypes;

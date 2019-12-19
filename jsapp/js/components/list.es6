@@ -140,7 +140,7 @@ export class ListCollectionFilter extends React.Component {
     this.queryCollections();
   }
   queryCollections () {
-    dataInterface.listCollections().then((collections)=>{
+    dataInterface.getCollections().then((collections)=>{
       var availableCollections = collections.results.filter((value) => {
         return value.access_type !== 'public';
       });
@@ -177,6 +177,7 @@ export class ListCollectionFilter extends React.Component {
         <Select
           name='collections'
           placeholder={t('Select Collection Name')}
+          isClearable
           isLoading={!this.state.collectionsLoaded}
           loadingMessage={() => {return t('Collections are loading...');}}
           options={this.state.availableCollections}

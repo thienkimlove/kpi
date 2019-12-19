@@ -29,20 +29,13 @@ export const PERMISSIONS_CODENAMES = new Map();
 new Set([
   'view_asset',
   'change_asset',
+  'discover_asset',
   'add_submissions',
   'view_submissions',
   'partial_submissions',
   'change_submissions',
-  'validate_submissions',
-  'view_collection',
-  'change_collection'
+  'validate_submissions'
 ]).forEach((codename) => {PERMISSIONS_CODENAMES.set(codename, codename);});
-
-// TODO remove after collection is merged with asset
-// // https://github.com/kobotoolbox/kpi/issues/2332
-export const COLLECTION_PERMISSIONS = {};
-COLLECTION_PERMISSIONS[PERMISSIONS_CODENAMES.get('view_collection')] = t('View collection');
-COLLECTION_PERMISSIONS[PERMISSIONS_CODENAMES.get('change_collection')] = t('Edit collection');
 
 export const HOOK_LOG_STATUSES = {
   SUCCESS: 2,
@@ -62,13 +55,18 @@ export const MODAL_TYPES = {
   SHARING: 'sharing',
   UPLOADING_XLS: 'uploading-xls',
   NEW_FORM: 'new-form',
+  LIBRARY_NEW_ITEM: 'library-new-item',
+  LIBRARY_TEMPLATE: 'library-template',
+  LIBRARY_COLLECTION: 'library-collection',
+  LIBRARY_UPLOAD: 'library-upload',
   ENKETO_PREVIEW: 'enketo-preview',
   SUBMISSION: 'submission',
   REPLACE_PROJECT: 'replace-project',
   TABLE_COLUMNS: 'table-columns',
   REST_SERVICES: 'rest-services',
   FORM_LANGUAGES: 'form-languages',
-  FORM_TRANSLATIONS_TABLE: 'form-translation-table'
+  FORM_TRANSLATIONS_TABLE: 'form-translation-table',
+  ASSET_TAGS: 'asset-tags'
 };
 
 export const PROJECT_SETTINGS_CONTEXTS = {
@@ -136,14 +134,12 @@ export const ASSET_TYPES = {
   survey: {
     id: 'survey',
     label: t('project')
+  },
+  collection: {
+    id: 'collection',
+    label: t('collection')
   }
 };
-
-export const ASSET_KINDS = new Map();
-new Set([
-  'asset',
-  'collection'
-]).forEach((kind) => {ASSET_KINDS.set(kind, kind);});
 
 export const QUESTION_TYPES = new Map([
   [
@@ -347,11 +343,24 @@ new Set([
 
 export const NAME_MAX_LENGTH = 255;
 
+/**
+ * for Backend calls, see their definitions at `kpi/filters.py`
+ */
+export const COMMON_QUERIES = new Map([
+  ['b', 'asset_type:block'],
+  ['q', 'asset_type:question'],
+  ['t', 'asset_type:template'],
+  ['s', 'asset_type:survey'],
+  ['c', 'asset_type:collection'],
+  ['qb', 'asset_type:question OR asset_type:block'],
+  ['qbt', 'asset_type:question OR asset_type:block OR asset_type:template'],
+  ['qbtc', 'asset_type:question OR asset_type:block OR asset_type:template OR asset_type:collection']
+]);
+
 export const constants = {
   ROOT_URL,
   ANON_USERNAME,
   PERMISSIONS_CODENAMES,
-  COLLECTION_PERMISSIONS,
   HOOK_LOG_STATUSES,
   KEY_CODES,
   MODAL_TYPES,
@@ -361,8 +370,8 @@ export const constants = {
   VALIDATION_STATUSES,
   VALIDATION_STATUSES_LIST,
   ASSET_TYPES,
-  ASSET_KINDS,
   QUESTION_TYPES,
   META_QUESTION_TYPES,
-  NAME_MAX_LENGTH
+  NAME_MAX_LENGTH,
+  COMMON_QUERIES
 };

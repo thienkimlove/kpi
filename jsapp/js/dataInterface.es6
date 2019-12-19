@@ -13,7 +13,10 @@ import {
   t,
   assign
 } from './utils';
-import {ROOT_URL} from './constants';
+import {
+  ROOT_URL,
+  COMMON_QUERIES
+} from './constants';
 
 export var dataInterface;
 (function(){
@@ -82,11 +85,24 @@ export var dataInterface;
     },
     listTemplates () {
       return $ajax({
-        url: `${ROOT_URL}/api/v2/assets/?q=asset_type:template`
+        url: `${ROOT_URL}/api/v2/assets/?q=${COMMON_QUERIES.get('t')}`
       });
     },
-    listCollections () {
-      return $.getJSON(`${ROOT_URL}/api/v2/collections/?all_public=true`);
+    getCollections(params = {}) {
+      let q = COMMON_QUERIES.get('c');
+      if (params.owner) {
+        q += ` AND owner__username__exact:${params.owner}`;
+      }
+      return $ajax({
+        url: `${ROOT_URL}/api/v2/assets/`,
+        dataType: 'json',
+        data: {
+          q: q,
+          limit: params.pageSize || 100,
+          page: params.page || 0
+        },
+        method: 'GET'
+      });
     },
     createAssetSnapshot (data) {
       return $ajax({
@@ -195,15 +211,6 @@ export var dataInterface;
         data: data,
       });
     },
-    cloneCollection ({uid}) {
-      return $ajax({
-        method: 'POST',
-        url: `${ROOT_URL}/api/v2/collections/`,
-        data: {
-          clone_from: uid
-        }
-      });
-    },
 
     /*
      * permissions
@@ -219,13 +226,6 @@ export var dataInterface;
     getAssetPermissions(assetUid) {
       return $ajax({
         url: `${ROOT_URL}/api/v2/assets/${assetUid}/permission-assignments/`,
-        method: 'GET'
-      });
-    },
-
-    getCollectionPermissions(uid) {
-      return $ajax({
-        url: `${ROOT_URL}/api/v2/collections/${uid}/permission-assignments/`,
         method: 'GET'
       });
     },
@@ -250,16 +250,6 @@ export var dataInterface;
       });
     },
 
-    assignCollectionPermission(uid, perm) {
-      return $ajax({
-        url: `${ROOT_URL}/api/v2/collections/${uid}/permission-assignments/`,
-        method: 'POST',
-        data: JSON.stringify(perm),
-        dataType: 'json',
-        contentType: 'application/json'
-      });
-    },
-
     removePermission (permUrl) {
       return $ajax({
         method: 'DELETE',
@@ -276,26 +266,6 @@ export var dataInterface;
         }
       });
     },
-    setCollectionDiscoverability (uid, discoverable) {
-      dataInterface.patchCollection(uid, {
-        discoverable_when_public: discoverable
-      });
-    },
-    libraryDefaultSearch () {
-      return $ajax({
-        url: `${ROOT_URL}/api/v2/assets/`,
-        data: {
-          q: 'asset_type:question OR asset_type:block OR asset_type:template'
-        },
-        method: 'GET'
-      });
-    },
-    deleteCollection ({uid}) {
-      return $ajax({
-        url: `${ROOT_URL}/api/v2/collections/${uid}/`,
-        method: 'DELETE'
-      });
-    },
     deleteAsset ({uid}) {
       return $ajax({
         url: `${ROOT_URL}/api/v2/assets/${uid}/`,
@@ -304,7 +274,7 @@ export var dataInterface;
     },
     subscribeCollection ({uid}) {
       return $ajax({
-        url: `${ROOT_URL}/collection_subscriptions/`,
+        url: `${ROOT_URL}/asset_subscriptions/`,
         data: {
           collection: `${ROOT_URL}/api/v2/collections/${uid}/`,
         },
@@ -313,7 +283,7 @@ export var dataInterface;
     },
     unsubscribeCollection ({uid}) {
       return $ajax({
-        url: `${ROOT_URL}/collection_subscriptions/`,
+        url: `${ROOT_URL}/asset_subscriptions/`,
         data: {
           collection__uid: uid
         },
@@ -374,11 +344,57 @@ export var dataInterface;
         dataType: 'html'
       });
     },
-    searchAssets (searchData) {
-      // override limit
+    searchAssets(searchData) {
+      // TODO https://github.com/kobotoolbox/kpi/issues/1983
+      // force set limit to get hacky "all" assets
       searchData.limit = 200;
       return $.ajax({
         url: `${ROOT_URL}/api/v2/assets/`,
+        dataType: 'json',
+        data: searchData,
+        method: 'GET'
+      });
+    },
+    searchMyLibraryAssets(params = {}) {
+      const searchData = {
+        q: `(${COMMON_QUERIES.get('qbtc')})`,
+        parent: '', // we only want orphans (assets not inside collection)
+        limit: params.pageSize || 100,
+        offset: params.page * params.pageSize || 0
+      };
+
+      if (params.searchPhrase) {
+        searchData.q += ` AND ${params.searchPhrase}`;
+      }
+
+      if (params.sort && params.order) {
+        searchData.sort = `{"${params.sort}":${params.order}}`;
+      }
+
+      return $ajax({
+        url: `${ROOT_URL}/api/v2/assets/`,
+        dataType: 'json',
+        data: searchData,
+        method: 'GET'
+      });
+    },
+    searchPublicCollections(params = {}) {
+      const searchData = {
+        all_public: true,
+        limit: params.pageSize || 100,
+        offset: params.page * params.pageSize || 0
+      };
+
+      if (params.searchPhrase) {
+        searchData.q += ` AND ${params.searchPhrase}`;
+      }
+
+      if (params.sort && params.order) {
+        searchData.sort = `{"${params.sort}":${params.order}}`;
+      }
+
+      return $ajax({
+        url: `${ROOT_URL}/api/v2/collections/`,
         dataType: 'json',
         data: searchData,
         method: 'GET'
@@ -388,20 +404,6 @@ export var dataInterface;
       return $ajax({
         url: `${ROOT_URL}/api/v2/assets/hash/`,
         method: 'GET'
-      });
-    },
-    createCollection (data) {
-      return $ajax({
-        method: 'POST',
-        url: `${ROOT_URL}/api/v2/collections/`,
-        data: data,
-      });
-    },
-    patchCollection (uid, data) {
-      return $ajax({
-        url: `${ROOT_URL}/api/v2/collections/${uid}/`,
-        method: 'PATCH',
-        data: data
       });
     },
     createResource (details) {
@@ -426,13 +428,6 @@ export var dataInterface;
           limit: 9999,
         }, data),
       });
-    },
-    getCollection (params={}) {
-      if (params.url) {
-        return $.getJSON(params.url);
-      } else {
-        return $.getJSON(`${ROOT_URL}/api/v2/collections/${params.id}/`);
-      }
     },
     loadNextPageUrl(nextPageUrl){
       return $ajax({

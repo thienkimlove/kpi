@@ -7,10 +7,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from jsonfield import JSONField
-from rest_framework import serializers
 
 from kpi.constants import SHADOW_MODEL_APP_LABEL
 from kpi.utils.hash import get_hash
+from kpi.exceptions import BadContentTypeException
 
 
 class ReadOnlyModelError(ValueError):
@@ -241,12 +241,10 @@ class KobocatUserObjectPermission(ShadowModel):
         content_type = KobocatContentType.objects.get_for_model(
             self.content_object)
         if content_type != self.permission.content_type:
-            raise serializers.ValidationError({
-                'content_type': "Cannot persist permission not designed for this "
-                                "class (permission's type is %r and object's " 
-                                "type is %r)" % (self.permission.content_type,
-                                                 content_type)
-            })
+            raise BadContentTypeException(
+                f"Cannot persist permission not designed for this "
+                 "class (permission's type is {self.permission.content_type} "
+                 "and object's type is {content_type}")
         return super().save(*args, **kwargs)
 
 

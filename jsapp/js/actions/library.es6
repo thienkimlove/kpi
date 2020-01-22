@@ -3,7 +3,11 @@
  */
 
 import Reflux from 'reflux';
-import {dataInterface} from '../dataInterface';
+import {dataInterface} from 'js/dataInterface';
+import {
+  t,
+  notify
+} from 'js/utils';
 
 const libraryActions = Reflux.createActions({
   searchMyLibraryAssets: {
@@ -17,6 +21,27 @@ const libraryActions = Reflux.createActions({
   searchPublicCollections: {
     children: [
       'started',
+      'completed',
+      'failed'
+    ]
+  },
+
+  subscribeToCollection: {
+    children: [
+      'completed',
+      'failed'
+    ]
+  },
+
+  unsubscribeFromCollection: {
+    children: [
+      'completed',
+      'failed'
+    ]
+  },
+
+  moveToCollection: {
+    children: [
       'completed',
       'failed'
     ]
@@ -46,10 +71,50 @@ libraryActions.searchPublicCollections.listen((params) => {
   libraryActions.searchPublicCollections.started(xhr.abort);
 });
 
+/**
+ * @param {string} assetUrl - url of target collection.
+ */
+libraryActions.subscribeToCollection.listen((assetUrl) => {
+  dataInterface.subscribeToCollection(assetUrl)
+    .done(libraryActions.subscribeToCollection.completed)
+    .fail(libraryActions.subscribeToCollection.failed);
+});
+
+/**
+ * @param {string} assetUid - uid of target collection.
+ */
+libraryActions.unsubscribeFromCollection.listen((assetUid) => {
+  dataInterface.unsubscribeFromCollection(assetUid)
+    .done(libraryActions.unsubscribeFromCollection.completed)
+    .fail(libraryActions.unsubscribeFromCollection.failed);
+});
+
+/**
+ * Moves asset to a collection.
+ * @param {string} assetUid
+ * @param {string} collectionUrl
+ */
+libraryActions.moveToCollection.listen((assetUid, collectionUrl) => {
+  dataInterface.patchAsset(assetUid, {parent: collectionUrl})
+    .done(libraryActions.moveToCollection.completed)
+    .fail(libraryActions.moveToCollection.failed);
+});
+
 libraryActions.getCollections.listen((params) => {
   dataInterface.getCollections(params)
     .done(libraryActions.getCollections.completed)
     .fail(libraryActions.getCollections.failed);
+});
+
+libraryActions.moveToCollection.completed.listen((asset) => {
+  if (asset.parent === null) {
+    notify(t('Successfuly removed from collection'));
+  } else {
+    notify(t('Successfuly moved to collection'));
+  }
+});
+libraryActions.moveToCollection.failed.listen(() => {
+  notify(t('Move to collection failed'), 'error');
 });
 
 export default libraryActions;

@@ -1,4 +1,3 @@
-import {actions} from 'js/actions';
 import {stores} from 'js/stores';
 import permConfig from 'js/components/permissions/permConfig';
 import {
@@ -10,7 +9,9 @@ import {
   MODAL_TYPES,
   QUESTION_TYPES,
   ANON_USERNAME,
-  PERMISSIONS_CODENAMES
+  PERMISSIONS_CODENAMES,
+  ACCESS_TYPES,
+  ROOT_URL
 } from 'js/constants';
 
 /**
@@ -93,10 +94,10 @@ export function getCountryDisplayString(asset, showLongName = false) {
 
 /**
  * @typedef DisplayNameObj
- * @prop {string} [original]
- * @prop {string} [question]
- * @prop {string} [empty]
- * @prop {string} final - original, question or empty name - the one for the user.
+ * @prop {string} [original] - Name typed in by user.
+ * @prop {string} [question] - First question name.
+ * @prop {string} [empty] - Set when no other is available.
+ * @prop {string} final - original, question or empty name - the one to be displayed.
  */
 
 /**
@@ -105,21 +106,19 @@ export function getCountryDisplayString(asset, showLongName = false) {
  * @returns {DisplayNameObj} object containing final name and all useful data.
  */
 export function getAssetDisplayName(asset) {
-  const displayName = {};
-
+  const output = {};
   if (asset.name) {
-    displayName.original = asset.name;
-  } else if (asset.summary && asset.summary.labels && asset.summary.labels.length > 0) {
-    // for unnamed assets, we try to display first question name
-    displayName.question = asset.summary.labels[0];
-  } else {
-    // for unnamed assets, with no questions, ww display special empty name
-    displayName.empty = t('no name');
+    output.original = asset.name;
   }
-
-  displayName.final = displayName.original || displayName.question || displayName.empty;
-
-  return displayName;
+  if (asset.summary && asset.summary.labels && asset.summary.labels.length > 0) {
+    // for unnamed assets, we try to display first question name
+    output.question = asset.summary.labels[0];
+  }
+  if (!output.original && !output.question) {
+    output.empty = t('untitled');
+  }
+  output.final = output.original || output.question || output.empty;
+  return output;
 }
 
 /**
@@ -136,6 +135,19 @@ export function getQuestionDisplayName(question) {
   } else {
     t('Unlabelled');
   }
+}
+
+/**
+ * @param {Object} asset - BE asset data
+ * @returns {boolean}
+ */
+export function isLibraryAsset(assetType) {
+  return (
+    assetType === ASSET_TYPES.question.id ||
+    assetType === ASSET_TYPES.block.id ||
+    assetType === ASSET_TYPES.template.id ||
+    assetType === ASSET_TYPES.collection.id
+  );
 }
 
 /**
@@ -160,7 +172,7 @@ export function getAssetIcon(asset) {
   } else if (asset.asset_type === ASSET_TYPES.collection.id) {
     if (isAssetPublic(asset.permissions)) {
       return 'k-icon-folder-public';
-    } else if (asset.access_type === 'shared') {
+    } else if (asset.access_type === ACCESS_TYPES.get('shared')) {
       return 'k-icon-folder-shared';
     } else {
       return 'k-icon-folder';
@@ -230,22 +242,8 @@ export function replaceForm(asset) {
 }
 
 /**
- * TODO: this should be an action
- *
- * Moves asset to a non-nested collection.
- * @param {string} assetUid
- * @param {string} collectionUrl
- */
-export function moveToCollection(assetUid, collectionUrl) {
-  actions.resources.updateAsset(
-    assetUid,
-    {parent: collectionUrl}
-  );
-}
-
-/**
- * @param {object} survey
- * @returns {object} a pair of quesion names and their full paths
+ * @param {Object} survey
+ * @returns {Object} a pair of quesion names and their full paths
  */
 export function getSurveyFlatPaths(survey) {
   const output = {};
@@ -267,6 +265,34 @@ export function getSurveyFlatPaths(survey) {
       }
 
       output[rowName] = `${groupsPath}${rowName}`;
+    }
+  });
+
+  return output;
+}
+
+/**
+ * @param {Object} survey
+ * @returns {Array<object>} a question object
+ */
+export function getFlatQuestionsList(survey) {
+  const output = [];
+  const openedGroups = [];
+  survey.forEach((row) => {
+    if (row.type === 'begin_group' || row.type === 'begin_repeat') {
+      openedGroups.push(getQuestionDisplayName(row));
+    }
+    if (row.type === 'end_group' || row.type === 'end_repeat') {
+      openedGroups.pop();
+    }
+
+    if (QUESTION_TYPES.has(row.type)) {
+      output.push({
+        type: row.type,
+        isRequired: row.required,
+        label: getQuestionDisplayName(row),
+        parents: openedGroups.slice(0)
+      });
     }
   });
 
@@ -303,21 +329,15 @@ export function isAssetPublicReady(name, organization, sector) {
 
 /**
  * Checks whether the asset is public - i.e. visible and discoverable by anyone.
+ * Note that `view_asset` is implied when you have `discover_asset`.
  *
  * @param {Object[]} permissions - Asset permissions.
  *
  * @returns {boolean} Is asset public.
  */
 export function isAssetPublic(permissions) {
-  let isVisibleToAnonymous = false;
   let isDiscoverableByAnonymous = false;
   permissions.forEach((perm) => {
-    if (
-      perm.user === buildUserUrl(ANON_USERNAME) &&
-      perm.permission === permConfig.getPermissionByCodename(PERMISSIONS_CODENAMES.get('view_asset')).url
-    ) {
-      isVisibleToAnonymous = true;
-    }
     if (
       perm.user === buildUserUrl(ANON_USERNAME) &&
       perm.permission === permConfig.getPermissionByCodename(PERMISSIONS_CODENAMES.get('discover_asset')).url
@@ -325,22 +345,45 @@ export function isAssetPublic(permissions) {
       isDiscoverableByAnonymous = true;
     }
   });
-   return isVisibleToAnonymous && isDiscoverableByAnonymous;
+   return isDiscoverableByAnonymous;
+}
+
+/**
+ * @param {Object} asset - BE asset data
+ * @return {boolean}
+ */
+export function isSelfOwned(asset) {
+  return (
+    asset &&
+    stores.session.currentAccount &&
+    asset.owner__username === stores.session.currentAccount.username
+  );
+}
+
+export function buildAssetUrl(assetUid) {
+  return `${ROOT_URL}/api/v2/assets/${assetUid}/`;
 }
 
 export default {
   cleanupTags,
-  getSurveyFlatPaths,
   getAssetOwnerDisplayName,
+  getOrganizationDisplayString,
+  getLanguagesDisplayString,
+  getSectorDisplayString,
+  getCountryDisplayString,
   getAssetDisplayName,
   getQuestionDisplayName,
+  isLibraryAsset,
   getAssetIcon,
   modifyDetails,
   share,
   editLanguages,
   editTags,
   replaceForm,
-  moveToCollection,
+  getSurveyFlatPaths,
+  getFlatQuestionsList,
   isAssetPublicReady,
-  isAssetPublic
+  isAssetPublic,
+  isSelfOwned,
+  buildAssetUrl
 };

@@ -54,6 +54,11 @@ export var dataInterface;
         url: `${ROOT_URL}/token/?format=json`
       });
     },
+    getUser: (userUrl) => {
+      return $ajax({
+        url: userUrl
+      });
+    },
     queryUserExistence: (username)=> {
       var d = new $.Deferred();
       $ajax({ url: `${ROOT_URL}/api/v2/users/${username}/` })
@@ -198,13 +203,14 @@ export var dataInterface;
         url: `${ROOT_URL}/reports/${data.uid}/${identifierString}`,
       });
     },
-    cloneAsset ({uid, name, version_id, new_asset_type}) {
+    cloneAsset ({uid, name, version_id, new_asset_type, parent}) {
       let data = {
         clone_from: uid,
       };
       if (name) { data.name = name; }
       if (version_id) { data.clone_from_version_id = version_id; }
       if (new_asset_type) { data.asset_type = new_asset_type; }
+      if (parent) { data.parent = parent; }
       return $ajax({
         method: 'POST',
         url: `${ROOT_URL}/api/v2/assets/`,
@@ -272,20 +278,20 @@ export var dataInterface;
         method: 'DELETE'
       });
     },
-    subscribeCollection ({uid}) {
+    subscribeToCollection(assetUrl) {
       return $ajax({
         url: `${ROOT_URL}/api/v2/asset_subscriptions/`,
         data: {
-          collection: `${ROOT_URL}/api/v2/collections/${uid}/`,
+          asset: assetUrl
         },
         method: 'POST'
       });
     },
-    unsubscribeCollection ({uid}) {
+    unsubscribeFromCollection(uid) {
       return $ajax({
         url: `${ROOT_URL}/api/v2/asset_subscriptions/`,
         data: {
-          collection__uid: uid
+          asset__uid: uid
         },
         method: 'GET'
       }).then((data) => {
@@ -357,8 +363,8 @@ export var dataInterface;
     },
     searchMyLibraryAssets(params = {}) {
       const searchData = {
-        q: `(${COMMON_QUERIES.get('qbtc')})`,
-        parent: '', // we only want orphans (assets not inside collection)
+        // we only want orphans (assets not inside collection)
+        q: `${COMMON_QUERIES.get('qbtc')} AND parent__uid:null`,
         limit: params.pageSize || 100,
         offset: params.page * params.pageSize || 0
       };
@@ -368,7 +374,7 @@ export var dataInterface;
       }
 
       if (params.sort && params.order) {
-        searchData.sort = `{"${params.sort}":${params.order}}`;
+        searchData.ordering = `${params.order}${params.sort}`;
       }
 
       return $ajax({
@@ -380,6 +386,7 @@ export var dataInterface;
     },
     searchPublicCollections(params = {}) {
       const searchData = {
+        q: `${COMMON_QUERIES.get('c')} AND status:public-discoverable`,
         all_public: true,
         limit: params.pageSize || 100,
         offset: params.page * params.pageSize || 0
@@ -390,11 +397,11 @@ export var dataInterface;
       }
 
       if (params.sort && params.order) {
-        searchData.sort = `{"${params.sort}":${params.order}}`;
+        searchData.ordering = `${params.order}${params.sort}`;
       }
 
       return $ajax({
-        url: `${ROOT_URL}/api/v2/collections/`,
+        url: `${ROOT_URL}/api/v2/assets/`,
         dataType: 'json',
         data: searchData,
         method: 'GET'

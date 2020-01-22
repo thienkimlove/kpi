@@ -33,6 +33,7 @@ import {stores} from '../stores';
 import {actions} from '../actions';
 import dkobo_xlform from '../../xlform/src/_xlform.init';
 import {dataInterface} from '../dataInterface';
+import assetUtils from 'js/assetUtils';
 
 const ErrorMessage = bem.create('error-message');
 const ErrorMessage__strong = bem.create('error-message__header', '<strong>');
@@ -51,7 +52,7 @@ export default assign({
 
     this.loadAsideSettings();
 
-    if (this.state.editorState === 'existing') {
+    if (!this.state.isNewAsset) {
       let uid = this.props.params.assetid || this.props.params.uid;
       stores.allAssets.whenLoaded(uid, (asset) => {
         this.setState({asset: asset});
@@ -266,7 +267,7 @@ export default assign({
 
     params = koboMatrixParser(params);
 
-    if (this.state.editorState === 'new') {
+    if (this.state.isNewAsset) {
       // we're intentionally leaving after creating new asset,
       // so there is nothing unsaved here
       this.unpreventClosingTab();
@@ -277,9 +278,12 @@ export default assign({
       } else {
         params.asset_type = 'block';
       }
+      if (this.state.parentAsset) {
+        params.parent = assetUtils.buildAssetUrl(this.state.parentAsset);
+      }
       actions.resources.createResource.triggerAsync(params)
         .then(() => {
-          hashHistory.push('/library');
+          hashHistory.push(this.state.backRoute);
         });
     } else {
       // update existing asset
@@ -358,7 +362,7 @@ export default assign({
       ooo.hasSettings = this.state.backRoute === '/forms';
       ooo.styleValue = this.state.settings__style;
     }
-    if (this.state.editorState === 'new') {
+    if (this.state.isNewAsset) {
       ooo.saveButtonText = t('create');
     } else if (this.state.surveySaveFail) {
       ooo.saveButtonText = `${t('save')} (${t('retry')}) `;
@@ -473,25 +477,23 @@ export default assign({
   },
 
   safeNavigateToList() {
-    if (this.state.asset_type) {
-      if (this.state.asset_type === 'survey') {
-        this.safeNavigateToRoute('/forms/');
-      } else {
-        this.safeNavigateToRoute('/library/');
-      }
-    } else if (this.props.location.pathname.startsWith('/library/new')) {
-      this.safeNavigateToRoute('/library/');
+    if (this.state.backRoute) {
+      this.safeNavigateToRoute(this.state.backRoute);
+    } else if (this.props.location.pathname.startsWith('/library')) {
+      this.safeNavigateToRoute('/library');
     } else {
-      this.safeNavigateToRoute('/forms/');
+      this.safeNavigateToRoute('/forms');
     }
   },
 
-  safeNavigateToForm() {
-    var backRoute = this.state.backRoute;
+  safeNavigateToAsset() {
+    let targetRoute = this.state.backRoute;
     if (this.state.backRoute === '/forms') {
-      backRoute = `/forms/${this.state.asset_uid}`;
+      targetRoute = `/forms/${this.state.asset_uid}`;
+    } else if (this.state.backRoute === '/library') {
+      targetRoute = `/library/asset/${this.state.asset_uid}`;
     }
-    this.safeNavigateToRoute(backRoute);
+    this.safeNavigateToRoute(targetRoute);
   },
 
   // rendering methods
@@ -579,7 +581,7 @@ export default assign({
 
             <bem.FormBuilderHeader__close
               m={[{'close-warning': this.needsSave()}]}
-              onClick={this.safeNavigateToForm}
+              onClick={this.safeNavigateToAsset}
             >
               <i className='k-icon-close'/>
             </bem.FormBuilderHeader__close>

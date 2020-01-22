@@ -54,12 +54,14 @@ class MainHeader extends Reflux.Component {
   }
   componentDidMount() {
     document.body.classList.add('hide-edge');
-    this.listenTo(stores.asset, this.assetLoad);
+    this.listenTo(stores.asset, this.onAssetLoad);
     this.listenTo(myLibraryStore, this.myLibraryStoreChanged);
   }
   componentWillUpdate(newProps) {
     if (this.props.assetid !== newProps.assetid) {
       this.setState({asset: false});
+      // we need new asset here, but instead of duplicating a call, we wait for
+      // action triggered by other component (route component)
     }
   }
   myLibraryStoreChanged() {
@@ -70,7 +72,7 @@ class MainHeader extends Reflux.Component {
   getIsSearchBoxDisabled() {
     return myLibraryStore.data.totalUserAssets === null;
   }
-  assetLoad(data) {
+  onAssetLoad(data) {
     const asset = data[this.props.assetid];
     this.setState(assign({asset: asset}));
   }
@@ -239,30 +241,16 @@ class MainHeader extends Reflux.Component {
                 />
               </div>
             }
-            { this.isLibrarySingle() && this.state.asset &&
+            { this.isFormSingle() || this.isLibrarySingle() && this.state.asset &&
               <React.Fragment>
                 <bem.MainHeader__icon className={iconClassName} />
 
                 <HeaderTitleEditor
-                  uid={this.state.asset.uid}
-                  type={this.state.asset.asset_type}
-                  name={this.state.asset.name}
-                  isEditable={userCanEditAsset}
-                />
-              </React.Fragment>
-            }
-            { this.isFormSingle() && this.state.asset &&
-              <React.Fragment>
-                <bem.MainHeader__icon className={iconClassName} />
-
-                <HeaderTitleEditor
-                  uid={this.state.asset.uid}
-                  type={this.state.asset.asset_type}
-                  name={this.state.asset.name}
+                  asset={this.state.asset}
                   isEditable={userCanEditAsset}
                 />
 
-                { this.state.asset.has_deployment &&
+                { this.isFormSingle() && this.state.asset.has_deployment &&
                   <bem.MainHeader__counter>
                     {this.state.asset.deployment__submission_count} {t('submissions')}
                   </bem.MainHeader__counter>
@@ -274,11 +262,6 @@ class MainHeader extends Reflux.Component {
           {this.renderGitRevInfo()}
         </bem.MainHeader>
       );
-  }
-  componentWillReceiveProps(nextProps) {
-    if (this.props.assetid !== nextProps.assetid && nextProps.assetid !== null) {
-      actions.resources.loadAsset({id: nextProps.assetid});
-    }
   }
 }
 

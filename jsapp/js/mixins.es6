@@ -14,7 +14,7 @@
 import React from 'react';
 import alertify from 'alertifyjs';
 import {hashHistory} from 'react-router';
-
+import assetUtils from 'js/assetUtils';
 import {
   PROJECT_SETTINGS_CONTEXTS,
   MODAL_TYPES,
@@ -167,8 +167,8 @@ mixins.dmix = {
       mixins.clickAssets.click.asset.unarchive(uid, callback);
     }
   },
-  deleteAsset (uid, name, callback) {
-    mixins.clickAssets.click.asset.delete(uid, name, callback);
+  deleteAsset(assetOrUid, name, callback) {
+    mixins.clickAssets.click.asset.delete(assetOrUid, name, callback);
   },
   toggleDeploymentHistory () {
     this.setState({
@@ -440,28 +440,54 @@ mixins.clickAssets = {
   },
   click: {
     asset: {
-      clone: function(uid, name){
-        let assetType = ASSET_TYPES[stores.selectedAsset.asset.asset_type].label || '';
-        let newName = `${t('Clone of')} ${name}`;
+      clone: function(assetOrUid) {
+        let asset;
+        if (typeof assetOrUid === 'object') {
+          asset = assetOrUid;
+        } else {
+          asset = stores.selectedAsset.asset || stores.allAssets.byUid[assetOrUid];
+        }
+        let assetTypeLabel = ASSET_TYPES[asset.asset_type].label;
+
+        let newName;
+        const displayName = assetUtils.getAssetDisplayName(asset);
+        // propose new name only if source asset name is not empty
+        if (displayName.original) {
+          newName = `${t('Clone of')} ${displayName.original}`;
+        }
+
         let dialog = alertify.dialog('prompt');
         let ok_button = dialog.elements.buttons.primary.firstChild;
         let opts = {
-          title: `${t('Clone')} ${assetType}`,
-          message: t('Enter the name of the cloned ##ASSET_TYPE##.').replace('##ASSET_TYPE##', assetType),
+          title: `${t('Clone')} ${assetTypeLabel}`,
+          message: t('Enter the name of the cloned ##ASSET_TYPE##.').replace('##ASSET_TYPE##', assetTypeLabel),
           value: newName,
           labels: {ok: t('Ok'), cancel: t('Cancel')},
           onok: (evt, value) => {
             ok_button.disabled = true;
             ok_button.innerText = t('Cloning...');
             actions.resources.cloneAsset({
-              uid: uid,
+              uid: asset.uid,
               name: value,
+              parent: asset.parent
             }, {
             onComplete: (asset) => {
               ok_button.disabled = false;
               dialog.destroy();
-              hashHistory.push(`/forms/${asset.uid}/landing`);
-              notify(t('cloned project created'));
+
+              // TODO when on collection landing page and user clones this
+              // collection's child asset, instead of navigating to clone
+              // landing page, it would be better to stay here and refresh data
+              // (as the clone will keep the parent asset)
+              let goToUrl;
+              if (asset.asset_type === ASSET_TYPES.survey.id) {
+                goToUrl = `/forms/${asset.uid}/landing`;
+              } else {
+                goToUrl = `/library/asset/${asset.uid}`;
+              }
+
+              hashHistory.push(goToUrl);
+              notify(t('cloned ##ASSET_TYPE## created').replace('##ASSET_TYPE##', assetTypeLabel));
             }
             });
             // keep the dialog open
@@ -486,7 +512,7 @@ mixins.clickAssets = {
         mixins.cloneAssetAsNewType.dialog({
           sourceUid: sourceUid,
           sourceName: sourceName,
-          targetType: 'survey',
+          targetType: ASSET_TYPES.survey.id,
           promptTitle: t('Create new project from this template'),
           promptMessage: t('Enter the name of the new project.')
         });
@@ -498,15 +524,20 @@ mixins.clickAssets = {
           hashHistory.push(`/forms/${uid}/edit`);
         }
       },
-      delete: function(uid, name, callback) {
-        const asset = stores.selectedAsset.asset || stores.allAssets.byUid[uid];
+      delete: function(assetOrUid, name, callback) {
+        let asset;
+        if (typeof assetOrUid === 'object') {
+          asset = assetOrUid;
+        } else {
+          asset = stores.selectedAsset.asset || stores.allAssets.byUid[assetOrUid];
+        }
         let assetTypeLabel = ASSET_TYPES[asset.asset_type].label;
 
         let dialog = alertify.dialog('confirm');
         let deployed = asset.has_deployment;
         let msg, onshow;
         let onok = (evt, val) => {
-          actions.resources.deleteAsset({uid: uid}, {
+          actions.resources.deleteAsset({uid: asset.uid, assetType: asset.asset_type}, {
             onComplete: ()=> {
               notify(t('##ASSET_TYPE## deleted permanently').replace('##ASSET_TYPE##', assetTypeLabel));
               if (typeof callback === 'function') {
@@ -646,13 +677,6 @@ mixins.clickAssets = {
 };
 
 mixins.permissions = {
-  userIsOwner(asset) {
-    return (
-      asset &&
-      stores.session.currentAccount &&
-      asset.owner__username === stores.session.currentAccount.username
-    );
-  },
   userCan (permName, asset) {
     if (!asset.permissions) {
       return false;
@@ -713,7 +737,7 @@ mixins.contextRouter = {
     return this.context.router.isActive(path, indexOnly);
   },
   isFormBuilder () {
-    if (this.context.router.isActive('/library/new-asset')) {
+    if (this.context.router.isActive('/library/asset/new')) {
       return true;
     }
 
@@ -721,6 +745,7 @@ mixins.contextRouter = {
     return (
       uid !== undefined &&
       this.context.router.isActive(`/library/asset/${uid}/edit`) ||
+      this.context.router.isActive(`/library/asset/${uid}/new`) ||
       this.context.router.isActive(`/forms/${uid}/edit`)
     );
   }

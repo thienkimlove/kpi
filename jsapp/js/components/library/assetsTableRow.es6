@@ -4,15 +4,11 @@ import {bem} from 'js/bem';
 import AssetActionButtons from './assetActionButtons';
 import ui from 'js/ui';
 import {formatTime} from 'js/utils';
-import {ASSET_TYPES} from 'js/constants';
 import {
-  getAssetIcon,
-  getAssetOwnerDisplayName,
-  getOrganizationDisplayString,
-  getLanguagesDisplayString,
-  getSectorDisplayString,
-  getCountryDisplayString
-} from 'js/assetUtils';
+  ASSET_TYPES,
+  ACCESS_TYPES
+} from 'js/constants';
+import assetUtils from 'js/assetUtils';
 import {ASSETS_TABLE_CONTEXTS} from './assetsTable';
 
 class AssetsTableRow extends React.Component {
@@ -24,10 +20,10 @@ class AssetsTableRow extends React.Component {
   render() {
     let iconClassName = '';
     if (this.props.asset) {
-      iconClassName = getAssetIcon(this.props.asset);
+      iconClassName = assetUtils.getAssetIcon(this.props.asset);
     }
 
-    let rowCount;
+    let rowCount = null;
     if (
       this.props.asset.asset_type !== ASSET_TYPES.collection.id &&
       this.props.asset.summary &&
@@ -39,9 +35,12 @@ class AssetsTableRow extends React.Component {
       this.props.asset.asset_type === ASSET_TYPES.collection.id &&
       this.props.asset.children
     ) {
-      // TODO this informations is not yet provided by Backend
-      rowCount = this.props.asset.children;
+      // TODO this works only if children property is available
+      // (collection asset in asset listing doesn't have it)
+      rowCount = this.props.asset.children.count;
     }
+
+    const isUserSubscribed = this.props.asset.access_type === ACCESS_TYPES.get('subscribed');
 
     return (
       <bem.AssetsTableRow m='asset'>
@@ -52,15 +51,17 @@ class AssetsTableRow extends React.Component {
         </bem.AssetsTableRow__buttons>
 
         <bem.AssetsTableRow__column m='icon-status'>
-          {rowCount &&
+          {rowCount !== null &&
             <i className={`k-icon ${iconClassName}`} data-counter={rowCount}/>
           }
-          {!rowCount &&
+          {rowCount === null &&
             <i className={`k-icon ${iconClassName}`}/>
           }
         </bem.AssetsTableRow__column>
 
         <bem.AssetsTableRow__column m='name'>
+          {isUserSubscribed && <bem.AssetsTableRow__dot/>}
+
           <ui.AssetName {...this.props.asset}/>
 
           {this.props.asset.settings && this.props.asset.settings.tags && this.props.asset.settings.tags.length > 0 &&
@@ -73,32 +74,32 @@ class AssetsTableRow extends React.Component {
         </bem.AssetsTableRow__column>
 
         <bem.AssetsTableRow__column m='owner'>
-          {getAssetOwnerDisplayName(this.props.asset.owner__username)}
+          {assetUtils.getAssetOwnerDisplayName(this.props.asset.owner__username)}
         </bem.AssetsTableRow__column>
 
         {this.props.context === ASSETS_TABLE_CONTEXTS.get('public-collections') &&
-          <bem.AssetsTableRow__column m='subscribers'>
+          <bem.AssetsTableRow__column m='subscribers-count'>
             {this.props.asset.subscribers_count}
           </bem.AssetsTableRow__column>
         }
 
         <bem.AssetsTableRow__column m='organization'>
-          {getOrganizationDisplayString(this.props.asset)}
+          {assetUtils.getOrganizationDisplayString(this.props.asset)}
         </bem.AssetsTableRow__column>
 
         <bem.AssetsTableRow__column m='languages'>
-          {getLanguagesDisplayString(this.props.asset)}
+          {assetUtils.getLanguagesDisplayString(this.props.asset)}
         </bem.AssetsTableRow__column>
 
         <bem.AssetsTableRow__column m='primary-sector'>
-          {getSectorDisplayString(this.props.asset)}
+          {assetUtils.getSectorDisplayString(this.props.asset)}
         </bem.AssetsTableRow__column>
 
         <bem.AssetsTableRow__column m='country'>
-          {getCountryDisplayString(this.props.asset)}
+          {assetUtils.getCountryDisplayString(this.props.asset)}
         </bem.AssetsTableRow__column>
 
-        <bem.AssetsTableRow__column m='last-modified'>
+        <bem.AssetsTableRow__column m='date-modified'>
           {formatTime(this.props.asset.date_modified)}
         </bem.AssetsTableRow__column>
       </bem.AssetsTableRow>

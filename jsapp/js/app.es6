@@ -32,7 +32,6 @@ import MainHeader from './components/header';
 import Drawer from './components/drawer';
 import {
   FormPage,
-  LibraryAssetCreator,
   LibraryAssetEditor
 } from './components/formEditors';
 import MyLibraryRoute from 'js/components/library/myLibraryRoute';
@@ -271,25 +270,13 @@ export var routes = (
     <Route path='account-settings' component={AccountSettings} />
     <Route path='change-password' component={ChangePassword} />
 
-    {/*
-    <Route path='library' >
-      <Route path='new' component={LibraryAssetCreator} />
-      <Route path='new/template' component={LibraryAssetCreator} />
-      <Route path='/library/:assetid'>
-        <Route path='json' component={FormJson} />,
-        <Route path='xform' component={FormXform} />,
-        <Route path='edit' component={LibraryAssetEditor} />
-      </Route>
-      <IndexRoute component={LibrarySearchableList} />
-    </Route>
-    */}
-
     <Route path='library'>
       <Route path='my-library' component={MyLibraryRoute}/>
       <Route path='public-collections' component={PublicCollectionsRoute}/>
-      <Route path='new-asset' component={LibraryAssetCreator}/>
+      <Route path='asset/new' component={LibraryAssetEditor}/>
       <Route path='asset/:uid' component={AssetRoute}/>
       <Route path='asset/:uid/edit' component={LibraryAssetEditor}/>
+      <Route path='asset/:uid/new' component={LibraryAssetEditor}/>
       <Route path='asset/:uid/json' component={FormJson}/>
       <Route path='asset/:uid/xform' component={FormXform}/>
       <IndexRedirect to='my-library'/>

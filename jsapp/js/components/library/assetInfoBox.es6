@@ -4,20 +4,14 @@ import autoBind from 'react-autobind';
 import Reflux from 'reflux';
 import {bem} from 'js/bem';
 import {actions} from 'js/actions';
-import {
-  isAssetPublicReady,
-  isAssetPublic,
-  getAssetOwnerDisplayName,
-  getOrganizationDisplayString,
-  getLanguagesDisplayString,
-  getSectorDisplayString,
-  getCountryDisplayString
-} from 'js/assetUtils';
+import {stores} from 'js/stores';
+import assetUtils from 'js/assetUtils';
 import {ASSET_TYPES} from 'js/constants';
 import {
   t,
   notify,
-  formatTime
+  formatTime,
+  formatDate
 } from 'js/utils';
 
 /**
@@ -29,7 +23,8 @@ class AssetInfoBox extends React.Component {
     this.state = {
       isPublicPending: false,
       isAwaitingFreshPermissions: false,
-      areDetailsVisible: false
+      areDetailsVisible: false,
+      ownerData: null
     };
     autoBind(this);
   }
@@ -37,6 +32,14 @@ class AssetInfoBox extends React.Component {
   componentDidMount() {
     this.listenTo(actions.permissions.setAssetPublic.completed, this.onSetAssetPublicCompleted);
     this.listenTo(actions.permissions.setAssetPublic.failed, this.onSetAssetPublicFailed);
+
+    if (!assetUtils.isSelfOwned(this.props.asset)) {
+      this.listenTo(actions.misc.getUser.completed, this.onGetUserCompleted);
+      this.listenTo(actions.misc.getUser.failed, this.onGetUserFailed);
+      actions.misc.getUser(this.props.asset.owner);
+    } else {
+      this.setState({ownerData: stores.session.currentAccount});
+    }
   }
 
   componentWillReceiveProps() {
@@ -45,6 +48,14 @@ class AssetInfoBox extends React.Component {
 
   toggleDetails() {
     this.setState({areDetailsVisible: !this.state.areDetailsVisible});
+  }
+
+  onGetUserCompleted(userData) {
+    this.setState({ownerData: userData});
+  }
+
+  onGetUserFailed() {
+    notify(t('Failed to get owner data.'), 'error');
   }
 
   onSetAssetPublicCompleted(assetUid) {
@@ -64,7 +75,7 @@ class AssetInfoBox extends React.Component {
   }
 
   makePublic() {
-    const requiredPropsReady = isAssetPublicReady(
+    const requiredPropsReady = assetUtils.isAssetPublicReady(
       this.props.asset.name,
       this.props.asset.settings.organization,
       this.props.asset.settings.sector
@@ -93,7 +104,7 @@ class AssetInfoBox extends React.Component {
     }
 
     const isPublicable = this.props.asset.asset_type === ASSET_TYPES.collection.id;
-    const isPublic = isPublicable && isAssetPublic(this.props.asset.permissions);
+    const isPublic = isPublicable && assetUtils.isAssetPublic(this.props.asset.permissions);
 
     return (
       <bem.FormView__cell m='box'>
@@ -155,7 +166,7 @@ class AssetInfoBox extends React.Component {
               {t('Organization')}
             </bem.FormView__cellLabel>
 
-            {getOrganizationDisplayString(this.props.asset)}
+            {assetUtils.getOrganizationDisplayString(this.props.asset)}
           </bem.FormView__cell>
 
           <bem.FormView__cell m={['tags', 'column-1']}>
@@ -163,7 +174,7 @@ class AssetInfoBox extends React.Component {
               {t('Tags')}
             </bem.FormView__cellLabel>
 
-            {this.props.asset.settings.tags && this.props.asset.settings.tags.join(', ') || t('n/a')}
+            {this.props.asset.settings.tags && this.props.asset.settings.tags.join(', ') || '-'}
           </bem.FormView__cell>
 
           <bem.FormView__cell m={['sector', 'column-1']}>
@@ -171,7 +182,7 @@ class AssetInfoBox extends React.Component {
               {t('Sector')}
             </bem.FormView__cellLabel>
 
-            {getSectorDisplayString(this.props.asset)}
+            {assetUtils.getSectorDisplayString(this.props.asset)}
           </bem.FormView__cell>
 
           <bem.FormView__cell m={['country', 'column-1']}>
@@ -179,7 +190,7 @@ class AssetInfoBox extends React.Component {
               {t('Country')}
             </bem.FormView__cellLabel>
 
-            {getCountryDisplayString(this.props.asset, true)}
+            {assetUtils.getCountryDisplayString(this.props.asset, true)}
           </bem.FormView__cell>
         </bem.FormView__cell>
 
@@ -191,7 +202,7 @@ class AssetInfoBox extends React.Component {
                   {t('Languages')}
                 </bem.FormView__cellLabel>
 
-                {getLanguagesDisplayString(this.props.asset)}
+                {assetUtils.getLanguagesDisplayString(this.props.asset)}
               </bem.FormView__cell>
 
               <bem.FormView__cell m={['description', 'column-2']}>
@@ -199,7 +210,7 @@ class AssetInfoBox extends React.Component {
                   {t('Description')}
                 </bem.FormView__cellLabel>
 
-                {this.props.asset.settings.description || t('n/a')}
+                {this.props.asset.settings.description || '-'}
               </bem.FormView__cell>
             </bem.FormView__cell>
 
@@ -209,7 +220,7 @@ class AssetInfoBox extends React.Component {
                   {t('Owner')}
                 </bem.FormView__cellLabel>
 
-                {getAssetOwnerDisplayName(this.props.asset.owner__username)}
+                {assetUtils.getAssetOwnerDisplayName(this.props.asset.owner__username)}
               </bem.FormView__cell>
 
               <bem.FormView__cell m='column-1'>
@@ -217,7 +228,7 @@ class AssetInfoBox extends React.Component {
                   {t('Member since')}
                 </bem.FormView__cellLabel>
 
-                TODO
+                {this.state.ownerData ? formatDate(this.state.ownerData.date_joined) : t('…')}
               </bem.FormView__cell>
             </bem.FormView__cell>
           </React.Fragment>

@@ -1,8 +1,8 @@
 # coding: utf-8
 import copy
 import json
-from collections import defaultdict
-
+from collections import defaultdict, OrderedDict
+from operator import itemgetter
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
@@ -16,7 +16,6 @@ from rest_framework_extensions.mixins import NestedViewSetMixin
 from kpi.constants import (
     ASSET_TYPES,
     ASSET_TYPE_ARG_NAME,
-    ASSET_TYPE_COLLECTION,
     ASSET_TYPE_SURVEY,
     ASSET_TYPE_TEMPLATE,
     CLONE_ARG_NAME,
@@ -25,7 +24,11 @@ from kpi.constants import (
 )
 from kpi.deployment_backends.backends import DEPLOYMENT_BACKENDS
 from kpi.exceptions import BadAssetTypeException
-from kpi.filters import KpiObjectPermissionsFilter, SearchFilter
+from kpi.filters import (
+    AssetOrderingFilter,
+    KpiObjectPermissionsFilter,
+    SearchFilter
+)
 from kpi.highlighters import highlight_xform
 from kpi.models import Asset
 from kpi.models.object_permission import (
@@ -34,6 +37,7 @@ from kpi.models.object_permission import (
     get_objects_for_user
 )
 from kpi.models.asset import UserAssetSubscription
+from kpi.paginators import AssetPagination
 from kpi.permissions import IsOwnerOrReadOnly, PostMappedToChangePermission, \
     get_perm_name
 from kpi.renderers import AssetJsonRenderer, SSJsonRenderer, XFormRenderer, \
@@ -64,6 +68,9 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     > Example
     >
     >       curl -X GET https://[kpi]/api/v2/assets/
+
+    Search can be made with `q` parameter. Look at [README](https://github.com/kobotoolbox/kpi#searching-assets)
+    for more details
 
     Get an hash of all `version_id`s of assets.
     Useful to detect any changes in assets with only one call to `API`
@@ -192,8 +199,18 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
 
     lookup_field = 'uid'
     permission_classes = (IsOwnerOrReadOnly,)
-    filter_backends = (KpiObjectPermissionsFilter, SearchFilter)
-
+    filter_backends = (
+        KpiObjectPermissionsFilter,
+        SearchFilter,
+        AssetOrderingFilter
+    )
+    ordering_fields = [
+        'asset_type',
+        'date_modified',
+        'name',
+        'owner__username',
+        'subscribers_count',
+    ]
     renderer_classes = (renderers.BrowsableAPIRenderer,
                         AssetJsonRenderer,
                         SSJsonRenderer,
@@ -201,11 +218,79 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
                         XlsRenderer,
                         )
 
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return AssetListSerializer
-        else:
-            return AssetSerializer
+    pagination_class = AssetPagination
+
+    def get_metadata(self, queryset):
+        """
+        Prepare metadata to inject in list endpoint.
+        Useful to retrieve values needed for search
+        :return: dict
+        """
+        metadata = {
+            'languages': set(),
+            'countries': OrderedDict(),
+            'sectors': OrderedDict(),
+            'organizations': set(),
+        }
+
+        # Languages
+        summaries = queryset.values_list('summary', flat=True). \
+            filter(summary__contains='languages')
+
+        for summary in summaries.all():
+            try:
+                summary = json.loads(summary)
+                for language in summary['languages']:
+                    if language:
+                        metadata['languages'].add(language)
+            except (ValueError, KeyError):
+                pass
+
+        metadata['languages'] = sorted(list(metadata['languages']))
+
+        # Other properties.
+        # ToDo, find a way to merge both querysets without using objects.
+        others = queryset.values_list('settings', flat=True). \
+            exclude(settings__country=None,
+                    settings__sector=None,
+                    settings__organization=None)
+
+        for other in others.all():
+            try:
+                if other['country']['value'] not in metadata['countries']:
+                    metadata['countries'][other['country']['value']] = \
+                        other['country']['label']
+            except (KeyError, TypeError):
+                pass
+
+            try:
+                if other['sector']['value'] not in metadata['sectors']:
+                    metadata['sectors'][other['sector']['value']] = \
+                        other['sector']['label']
+            except (KeyError, TypeError):
+                pass
+
+            try:
+                metadata['organizations'].add(other['organization'])
+            except KeyError:
+                pass
+
+        metadata['countries'] = sorted(metadata['countries'].items(),
+                                       key=itemgetter(1))
+
+        metadata['sectors'] = sorted(metadata['sectors'].items(),
+                                     key=itemgetter(1))
+
+        metadata['organizations'] = sorted(list(metadata['organizations']))
+
+        return metadata
+
+    def get_paginated_response(self, data, metadata):
+        """
+        Override parent `get_paginated_response` response to include `metadata`
+        """
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data, metadata)
 
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
@@ -215,6 +300,12 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
             # This is called to retrieve an individual record. How much do we
             # have to care about optimizations for that?
             return queryset
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AssetListSerializer
+        else:
+            return AssetSerializer
 
     def get_serializer_context(self):
         """
@@ -246,6 +337,7 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
             ).order_by(
                 'user__username', 'permission__codename'
             )
+
             object_permissions_per_asset = defaultdict(list)
 
             for op in object_permissions:
@@ -388,7 +480,19 @@ class AssetViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
-    @action(detail=False, methods=["GET"],
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data,
+                                               self.get_metadata(queryset))
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'],
             renderer_classes=[renderers.JSONRenderer])
     def hash(self, request):
         """

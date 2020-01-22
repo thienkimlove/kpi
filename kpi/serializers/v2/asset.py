@@ -90,6 +90,7 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
     languages = serializers.SerializerMethodField()
     subscribers_count = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    access_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Asset
@@ -138,6 +139,7 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
                   'languages',
                   'subscribers_count',
                   'status',
+                  'access_type',
                   )
         extra_kwargs = {
             'parent': {
@@ -373,6 +375,32 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
                                                    many=True, read_only=True,
                                                    context=context).data
 
+    def get_access_type(self, obj):
+        # Avoid extra queries if obj is not a collection
+        if obj.asset_type != ASSET_TYPE_COLLECTION:
+            return None
+
+        try:
+            request = self.context['request']
+        except KeyError:
+            return None
+        if request.user == obj.owner:
+            return 'owned'
+        # `obj.permissions.filter(...).exists()` would be cleaner, but it'd
+        # cost a query. This ugly loop takes advantage of having already called
+        # `prefetch_related()`
+        for permission in obj.permissions.all():
+            if not permission.deny and permission.user == request.user:
+                return 'shared'
+        if obj.has_subscribed_user(request.user.pk):
+            return 'subscribed'
+        if obj.discoverable_when_public:
+            return 'public'
+        if request.user.is_superuser:
+            return 'superuser'
+        raise Exception(
+            f'{request.user.username} has unexpected access to {obj.uid}')
+
     def _content(self, obj):
         return json.dumps(obj.content)
 
@@ -442,6 +470,8 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
 
 class AssetListSerializer(AssetSerializer):
 
+    children = serializers.SerializerMethodField()
+
     class Meta(AssetSerializer.Meta):
         # WARNING! If you're changing something here, please update
         # `Asset.optimize_queryset_for_list()`; otherwise, you'll cause an
@@ -471,7 +501,23 @@ class AssetListSerializer(AssetSerializer):
                   'languages',
                   'subscribers_count',
                   'status',
+                  'access_type',
+                  'children'
                   )
+
+    def get_children(self, asset):
+        if asset.asset_type != ASSET_TYPE_COLLECTION:
+            return {'count': 0}
+
+        try:
+            children_count = self.context['children_count_per_asset'].get(asset.pk, 0)
+        except KeyError:
+            # Maybe overkill, there are no reasons to enter here.
+            # in the list context, `children_count` should be always
+            # a property of `self.context`
+            children_count = asset.children.count()
+
+        return {'count': children_count}
 
     def get_languages(self, asset):
         if asset.asset_type != ASSET_TYPE_COLLECTION:

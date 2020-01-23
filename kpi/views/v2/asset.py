@@ -12,6 +12,7 @@ from rest_framework import exceptions, renderers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_extensions.mixins import NestedViewSetMixin
+from rest_framework_xml.renderers import XMLRenderer
 
 from kpi.constants import (
     ASSET_TYPES,
@@ -41,7 +42,7 @@ from kpi.paginators import AssetPagination
 from kpi.permissions import IsOwnerOrReadOnly, PostMappedToChangePermission, \
     get_perm_name
 from kpi.renderers import AssetJsonRenderer, SSJsonRenderer, XFormRenderer, \
-    XlsRenderer
+    XlsRenderer, RawXMLRenderer
 from kpi.serializers import DeploymentSerializer
 from kpi.serializers.v2.asset import AssetListSerializer, AssetSerializer
 from kpi.utils.hash import get_hash

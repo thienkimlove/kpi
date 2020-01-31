@@ -5,6 +5,20 @@
 .assets-table {
   width: 100%;
   background-color: $white;
+  // for small screens we want the table to still be readable and it can't get to narrow
+  overflow-x: auto;
+}
+
+.assets-table__header,
+.assets-table__body,
+.assets-table__footer {
+  min-width: 800px;
+}
+
+.assets-table__scrollbar-padding {
+  // for taking the same space as scrollbar, width is being set in JS code
+  border-bottom: 2px solid $divider-color;
+  align-self: stretch;
 }
 
 .assets-table__footer {
@@ -80,6 +94,7 @@
 
 $z-assets-table-row-link: 10;
 $z-assets-table-row-buttons: 20;
+$z-assets-table-row-header: 30;
 $c-assets-table-row-hover: $cool-whitegray;
 
 .assets-table-row {
@@ -115,6 +130,12 @@ $c-assets-table-row-hover: $cool-whitegray;
     border-top: 0;
   }
 
+  // columns get very narrow
+  .assets-table-row__header-label,
+  &.assets-table-row--header .assets-table-row__column .popover-menu__toggle {
+    font-size: 0.9rem;
+  }
+
   &.assets-table-row--header .assets-table-row__column {
     border-top: 0;
     border-bottom: 2px solid $divider-color;
@@ -136,7 +157,34 @@ $c-assets-table-row-hover: $cool-whitegray;
       font-size: 20px;
       // to take up space when empty
       min-width: 20px;
+      width: 20px;
       display: inline-block;
+    }
+
+    .popover-menu {
+      display: block;
+
+      .popover-menu__toggle {
+        display: block;
+        color: currentColor;
+
+        &:hover {
+          color: currentColor;
+        }
+
+        .k-icon {
+          margin: -5px;
+        }
+      }
+
+      .popover-menu__content {
+        top: 30px - 2px;
+        z-index: $z-assets-table-row-header;
+
+        .k-icon {
+          margin: -2px;
+        }
+      }
     }
   }
 
@@ -158,6 +206,10 @@ $c-assets-table-row-hover: $cool-whitegray;
   .assets-table-row__column {
     border-top: 1px solid $divider-color;
     padding: 10px;
+
+    &[disabled] {
+      pointer-events: none;
+    }
 
     &.assets-table-row__column--icon-status {
       width: 50px;

@@ -15,32 +15,31 @@ import {
 const publicCollectionsStore = Reflux.createStore({
   /**
    * A method for aborting current XHR fetch request.
-   * It doesn't need to be defined, but I'm adding it here for clarity.
+   * It doesn't need to be defined upfront, but I'm adding it here for clarity.
    */
   abortFetchData: undefined,
   previousPath: null,
   PAGE_SIZE: 100,
-  DEFAULT_COLUMN: ASSETS_TABLE_COLUMNS.get('date-modified'),
+  DEFAULT_ORDER_COLUMN: ASSETS_TABLE_COLUMNS.get('date-modified'),
 
   init() {
     this.data = {
       isFetchingData: false,
-      column: this.DEFAULT_COLUMN,
-      columnValue: this.DEFAULT_COLUMN.defaultValue,
       currentPage: 0,
       totalPages: null,
-      totalUserAssets: null,
       totalSearchAssets: null,
-      assets: []
+      assets: [],
+      metadata: {}
     };
+    this.setDefaultColumns();
 
     hashHistory.listen(this.onRouteChange.bind(this));
     searchBoxStore.listen(this.searchBoxStoreChanged);
     actions.library.searchPublicCollections.started.listen(this.onSearchStarted);
     actions.library.searchPublicCollections.completed.listen(this.onSearchCompleted);
     actions.library.searchPublicCollections.failed.listen(this.onSearchFailed);
-    actions.library.subscribeToCollection.completed.listen(this.onSubscribeCompleted);
-    actions.library.unsubscribeFromCollection.listen(this.onUnsubscribeCompleted);
+    actions.library.subscribeToCollection.completed.listen(this.onSubscribeCompleted.bind(this, true));
+    actions.library.unsubscribeFromCollection.listen(this.onUnsubscribeCompleted.bind(this, true));
     actions.library.moveToCollection.completed.listen(this.onMoveToCollectionCompleted);
     actions.resources.loadAsset.completed.listen(this.onAssetChanged);
     actions.resources.updateAsset.completed.listen(this.onAssetChanged);
@@ -48,23 +47,48 @@ const publicCollectionsStore = Reflux.createStore({
     actions.resources.createResource.completed.listen(this.onAssetCreated);
     actions.resources.deleteAsset.completed.listen(this.onDeleteAssetCompleted);
 
-    this.fetchData();
+    this.fetchData(true);
+  },
+
+  setDefaultColumns() {
+    this.data.orderColumnId = this.DEFAULT_ORDER_COLUMN.id;
+    this.data.orderValue = this.DEFAULT_ORDER_COLUMN.defaultValue;
+    this.data.filterColumnId = null;
+    this.data.filterValue = null;
   },
 
   // methods for handling search and data fetch
 
-  fetchData() {
+  fetchMetadata() {
+    // TODO call metadata fatch when endpoint is ready
+  },
+
+  /**
+   * @param {boolean} needsMetadata
+   */
+  fetchData(needsMetadata = false) {
     if (this.abortFetchData) {
       this.abortFetchData();
     }
 
-    actions.library.searchPublicCollections({
+    const params = {
       searchPhrase: searchBoxStore.getSearchPhrase(),
       pageSize: this.PAGE_SIZE,
       page: this.data.currentPage,
-      sort: this.data.column.orderBy || this.data.column.filterBy,
-      order: this.data.columnValue === ORDER_DIRECTIONS.get('ascending') ? '+' : '-'
-    });
+      metadata: needsMetadata
+    };
+
+    const orderColumn = ASSETS_TABLE_COLUMNS.get(this.data.orderColumnId);
+    const direction = this.data.orderValue === ORDER_DIRECTIONS.get('ascending') ? '' : '-';
+    params.ordering = `${direction}${orderColumn.orderBy}`;
+
+    if (this.data.filterColumnId !== null) {
+      const filterColumn = ASSETS_TABLE_COLUMNS.get(this.data.filterColumnId);
+      params.filterProperty = filterColumn.filterBy;
+      params.filterValue = this.data.filterValue;
+    }
+
+    actions.library.searchPublicCollections(params);
   },
 
   onRouteChange(data) {
@@ -74,7 +98,8 @@ const publicCollectionsStore = Reflux.createStore({
       this.previousPath.split('/')[1] !== 'library' &&
       data.pathname.split('/')[1] === 'library'
     ) {
-      this.fetchData();
+      this.setDefaultColumns();
+      this.fetchData(true);
     }
     this.previousPath = data.pathname;
   },
@@ -84,7 +109,7 @@ const publicCollectionsStore = Reflux.createStore({
     this.data.currentPage = 0;
     this.data.totalPages = null;
     this.data.totalSearchAssets = null;
-    this.fetchData();
+    this.fetchData(true);
   },
 
   onSearchStarted(abort) {
@@ -96,16 +121,11 @@ const publicCollectionsStore = Reflux.createStore({
   onSearchCompleted(response) {
     delete this.abortFetchData;
 
-    this.data.hasNextPage = response.next !== null;
-    this.data.hasPreviousPage = response.previous !== null;
-
     this.data.totalPages = Math.ceil(response.count / this.PAGE_SIZE);
 
     this.data.assets = response.results;
+    this.data.metadata = response.metadata;
     this.data.totalSearchAssets = response.count;
-    if (this.data.totalUserAssets === null) {
-      this.data.totalUserAssets = this.data.totalSearchAssets;
-    }
     this.data.isFetchingData = false;
     this.trigger(this.data);
   },
@@ -148,7 +168,7 @@ const publicCollectionsStore = Reflux.createStore({
       asset.asset_type === ASSET_TYPES.collection.id &&
       assetUtils.isAssetPublic(asset.permissions)
     ) {
-      this.fetchData();
+      this.fetchData(true);
     }
   },
 
@@ -168,6 +188,7 @@ const publicCollectionsStore = Reflux.createStore({
       }
       if (wasUpdated) {
         this.trigger(this.data);
+        this.fetchMetadata();
       }
     }
   },
@@ -177,7 +198,7 @@ const publicCollectionsStore = Reflux.createStore({
       asset.asset_type === ASSET_TYPES.collection.id &&
       assetUtils.isAssetPublic(asset.permissions)
     ) {
-      this.fetchData();
+      this.fetchData(true);
     }
   },
 
@@ -185,7 +206,7 @@ const publicCollectionsStore = Reflux.createStore({
     if (assetType === ASSET_TYPES.collection.id) {
       const found = this.data.assets.find((asset) => {return asset.uid === uid;});
       if (found) {
-        this.fetchData();
+        this.fetchData(true);
       }
       // if not found it is possible it is on other page of results, but it is
       // not important enough to do a data fetch
@@ -199,15 +220,48 @@ const publicCollectionsStore = Reflux.createStore({
     this.fetchData();
   },
 
-  setOrder(column, columnValue) {
+  /**
+   * @param {string} orderColumnId
+   * @param {string} orderValue
+   */
+  setOrder(orderColumnId, orderValue) {
     if (
-      this.data.column.id !== column.id ||
-      this.data.columnValue !== columnValue
+      this.data.orderColumnId !== orderColumnId ||
+      this.data.orderValue !== orderValue
     ) {
-      this.data.column = column;
-      this.data.columnValue = columnValue;
+      this.data.orderColumnId = orderColumnId;
+      this.data.orderValue = orderValue;
       this.fetchData();
     }
+  },
+
+  /**
+   * @param {string|null} filterColumnId - pass null to clear filter column
+   * @param {string} filterValue - pass null to clear filter column
+   */
+  setFilter(filterColumnId, filterValue) {
+    if (
+      this.data.filterColumnId !== filterColumnId ||
+      this.data.filterValue !== filterValue
+    ) {
+      this.data.filterColumnId = filterColumnId;
+      this.data.filterValue = filterValue;
+      this.fetchData(true);
+    }
+  },
+
+  resetOrderAndFilter() {
+    this.setDefaultColumns();
+    this.fetchData(true);
+  },
+
+  hasAllDefaultValues() {
+    return (
+      this.data.orderColumnId === this.DEFAULT_ORDER_COLUMN.id &&
+      this.data.orderValue === this.DEFAULT_ORDER_COLUMN.defaultValue &&
+      this.data.filterColumnId === null &&
+      this.data.filterValue === null
+    );
   }
 });
 

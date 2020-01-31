@@ -60,8 +60,12 @@ export function getOrganizationDisplayString(asset) {
  * @returns {string}
  */
 export function getLanguagesDisplayString(asset) {
-  if (asset.languages.length >= 1) {
-    return asset.languages.join(', ');
+  if (
+    asset.summary &&
+    asset.summary.languages &&
+    asset.summary.languages.length >= 1
+  ) {
+    return asset.summary.languages.join(', ');
   } else {
     return '-';
   }
@@ -360,6 +364,10 @@ export function isSelfOwned(asset) {
   );
 }
 
+/**
+ * @param {string} assetUid
+ * @return {string} assetUrl
+ */
 export function buildAssetUrl(assetUid) {
   return `${ROOT_URL}/api/v2/assets/${assetUid}/`;
 }

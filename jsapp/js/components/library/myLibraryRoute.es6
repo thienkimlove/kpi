@@ -16,38 +16,46 @@ import {
 class MyLibraryRoute extends React.Component {
   constructor(props) {
     super(props);
-
-    this.state = {
-      isLoading: myLibraryStore.data.isFetchingData,
-      assets: myLibraryStore.data.assets,
-      totalAssets: myLibraryStore.data.totalSearchAssets,
-      column: myLibraryStore.data.column,
-      columnValue: myLibraryStore.data.columnValue,
-      currentPage: myLibraryStore.data.currentPage,
-      totalPages: myLibraryStore.data.totalPages
-    };
-
+    this.state = this.getFreshState();
+    this.unlisteners = [];
     autoBind(this);
   }
 
+  getFreshState() {
+    return {
+      isLoading: myLibraryStore.data.isFetchingData,
+      assets: myLibraryStore.data.assets,
+      metadata: myLibraryStore.data.metadata,
+      totalAssets: myLibraryStore.data.totalSearchAssets,
+      orderColumnId: myLibraryStore.data.orderColumnId,
+      orderValue: myLibraryStore.data.orderValue,
+      filterColumnId: myLibraryStore.data.filterColumnId,
+      filterValue: myLibraryStore.data.filterValue,
+      currentPage: myLibraryStore.data.currentPage,
+      totalPages: myLibraryStore.data.totalPages
+    };
+  }
+
   componentDidMount() {
-    this.listenTo(myLibraryStore, this.myLibraryStoreChanged);
+    this.unlisteners.push(
+      myLibraryStore.listen(this.myLibraryStoreChanged)
+    );
+  }
+
+  componentWillUnmount() {
+    this.unlisteners.forEach((clb) => {clb();});
   }
 
   myLibraryStoreChanged() {
-    this.setState({
-      isLoading: myLibraryStore.data.isFetchingData,
-      assets: myLibraryStore.data.assets,
-      totalAssets: myLibraryStore.data.totalSearchAssets,
-      column: myLibraryStore.data.column,
-      columnValue: myLibraryStore.data.columnValue,
-      currentPage: myLibraryStore.data.currentPage,
-      totalPages: myLibraryStore.data.totalPages
-    });
+    this.setState(this.getFreshState());
   }
 
-  onAssetsTableColumnChange(column, columnValue) {
-    myLibraryStore.setOrder(column, columnValue);
+  onAssetsTableOrderChange(orderColumnId, orderValue) {
+    myLibraryStore.setOrder(orderColumnId, orderValue);
+  }
+
+  onAssetsTableFilterChange(filterColumnId, filterValue) {
+    myLibraryStore.setFilter(filterColumnId, filterValue);
   }
 
   onAssetsTableSwitchPage(pageNumber) {
@@ -67,12 +75,16 @@ class MyLibraryRoute extends React.Component {
         >
           <AssetsTable
             context={ASSETS_TABLE_CONTEXTS.get('my-library')}
+            isLoading={this.state.isLoading}
             assets={this.state.assets}
             totalAssets={this.state.totalAssets}
-            isLoading={this.state.isLoading}
-            column={this.state.column}
-            columnValue={this.state.columnValue}
-            onColumnChange={this.onAssetsTableColumnChange.bind(this)}
+            metadata={this.state.metadata}
+            orderColumnId={this.state.orderColumnId}
+            orderValue={this.state.orderValue}
+            onOrderChange={this.onAssetsTableOrderChange.bind(this)}
+            filterColumnId={this.state.filterColumnId}
+            filterValue={this.state.filterValue}
+            onFilterChange={this.onAssetsTableFilterChange.bind(this)}
             currentPage={this.state.currentPage}
             totalPages={this.state.totalPages}
             onSwitchPage={this.onAssetsTableSwitchPage.bind(this)}
